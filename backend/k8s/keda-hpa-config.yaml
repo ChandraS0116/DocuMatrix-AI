@@ -1,0 +1,32 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: ml-gpu-workers-scaler
+  namespace: docintel-prod
+spec:
+  scaleTargetRef:
+    name: ml-gpu-workers
+  minReplicaCount: 2
+  maxReplicaCount: 50
+  triggers:
+    - type: redis
+      metadata:
+        address: redis-master.docintel-prod.svc.cluster.local:6379
+        listName: queue.ml.gpu.batch
+        listLength: "10"
+
+---
+# STRICT RULE: KEDA is the primary scaler. HPA is only a safety limiter (maxReplica boundary).
+# KEDA automatically manages the underlying HPA object using external metrics.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ml-gpu-hpa-safety-limiter
+  namespace: docintel-prod
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ml-gpu-workers
+  minReplicas: 2
+  maxReplicas: 50

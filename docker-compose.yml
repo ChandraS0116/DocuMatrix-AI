@@ -1,0 +1,111 @@
+version: "3.9"
+
+services:
+
+  backend:
+    build: ./backend
+    container_name: doc-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - postgres
+      - elasticsearch
+      - minio
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/docs
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/docs
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - ES_HOST=http://elasticsearch:9200
+      - MINIO_URL=http://minio:9000
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password
+    env_file:
+      - .env
+
+  worker-cpu:
+    build: ./backend
+    container_name: worker-cpu
+    command: celery -A app.celery worker -Q queue.ml.cpu,queue.embedding.stream,queue.indexer.bulk -l info
+    depends_on:
+      - redis
+      - backend
+      - minio
+    environment:
+      - CELERY_QUEUE=cpu
+      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/docs
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - MINIO_URL=http://minio:9000
+    env_file:
+      - .env
+
+  worker-gpu:
+    build: ./backend
+    container_name: worker-gpu
+    command: celery -A app.celery worker -Q queue.ml.gpu.batch -l info
+    environment:
+      - CELERY_QUEUE=gpu
+      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_URL=postgresql://postgres:postgres@postgres:5432/docs
+    env_file:
+      - .env
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: docs
+    ports:
+      - "5432:5432"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    ports:
+      - "3100:3100"

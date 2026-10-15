@@ -1,0 +1,29 @@
+# Hybrid OPA Deployment Model
+# 1. Sidecar OPA for low-latency execution routing 
+# 2. Central OPA cluster for Governance & Billing
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opa-central
+  namespace: docintel-prod
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: opa-central
+  template:
+    metadata:
+      labels:
+        app: opa-central
+    spec:
+      containers:
+      - name: opa
+        image: openpolicyagent/opa:latest
+        args:
+        - "run"
+        - "--server"
+        - "--log-level=info"
+        ports:
+        - name: http
+          containerPort: 8181
