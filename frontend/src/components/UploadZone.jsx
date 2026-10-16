@@ -6,6 +6,11 @@ const CHUNK_SIZE = 8 * 1024 * 1024; // 8MB Default
 const MAX_CONCURRENCY = 4;
 const MAX_RETRIES = 3;
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return (token && token !== 'null' && token !== 'undefined') ? { 'Authorization': `Bearer ${token}` } : {};
+};
+
 export default function UploadZone({ onUploadComplete }) {
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState('idle'); // idle, uploading, paused, error, complete
@@ -58,45 +63,56 @@ export default function UploadZone({ onUploadComplete }) {
     setStatus('uploading');
     setErrorMsg(null);
     setProgress({ uploaded: 0, total: f.size, percentage: 0 });
-    
-    const totalChunks = Math.ceil(f.size / CHUNK_SIZE);
-    
-    uploadStateRef.current = {
-      sessionId: null,
-      uploadedChunks: new Set(),
-      totalChunks,
-      activeWorkers: 0,
-      isPaused: false,
-      isCancelled: false,
-      startTime: Date.now(),
-      bytesUploadedSinceStart: 0,
-      chunkRetries: {},
-      queue: Array.from({ length: totalChunks }, (_, i) => i)
-    };
-    
-    speedIntervalRef.current = setInterval(updateSpeedAndEta, 1000);
+    uploadStateRef.current.startTime = Date.now();
+    uploadStateRef.current.isCancelled = false;
 
-    try {
-      const formData = new FormData();
-      formData.append('filename', f.name);
-      formData.append('file_size', f.size.toString());
-      formData.append('total_chunks', totalChunks.toString());
-      
-      const res = await fetch('/api/v1/documents/upload/init', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
-        body: formData
-      });
-      
-      if (!res.ok) throw new Error("Failed to initialize upload");
-      
-      const data = await res.json();
-      uploadStateRef.current.sessionId = data.upload_session_id;
-      
-      processQueue();
-    } catch (err) {
-      handleError(err.message);
+    const formData = new FormData();
+    formData.append('file', f);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/v1/documents/upload', true);
+    const headers = getAuthHeaders();
+    for (const [k, v] of Object.entries(headers)) {
+      xhr.setRequestHeader(k, v);
     }
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const pct = Math.round((e.loaded / e.total) * 100);
+        setProgress({ uploaded: e.loaded, total: e.total, percentage: pct });
+        const elapsed = (Date.now() - uploadStateRef.current.startTime) / 1000;
+        if (elapsed > 0) {
+          const spd = e.loaded / elapsed;
+          setSpeed(spd);
+          if (spd > 0) {
+            setEta(Math.round((e.total - e.loaded) / spd));
+          }
+        }
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        setProgress({ uploaded: f.size, total: f.size, percentage: 100 });
+        setStatus('complete');
+        let respData = null;
+        try {
+          respData = JSON.parse(xhr.responseText);
+        } catch (e) {}
+        setTimeout(() => {
+          if (onUploadComplete) onUploadComplete(respData);
+          reset();
+        }, 800);
+      } else {
+        handleError(`Upload failed (${xhr.status}): ${xhr.responseText || 'Server error'}`);
+      }
+    };
+
+    xhr.onerror = () => {
+      handleError("Network communication error during file upload.");
+    };
+
+    xhr.send(formData);
   };
 
   const updateSpeedAndEta = () => {
@@ -150,7 +166,7 @@ export default function UploadZone({ onUploadComplete }) {
     try {
       const res = await fetch('/api/v1/documents/upload/chunk', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+        headers: getAuthHeaders(),
         body: formData
       });
       
@@ -200,7 +216,7 @@ export default function UploadZone({ onUploadComplete }) {
       
       const res = await fetch('/api/v1/documents/upload/complete', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+        headers: getAuthHeaders(),
         body: formData
       });
       
@@ -252,7 +268,7 @@ export default function UploadZone({ onUploadComplete }) {
       formData.append('upload_session_id', state.sessionId);
       fetch('/api/v1/documents/upload/cancel', {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+        headers: getAuthHeaders(),
         body: formData
       }).catch(console.error); // Best effort cleanup
     }
@@ -296,22 +312,22 @@ export default function UploadZone({ onUploadComplete }) {
           className="glass-panel hover-card"
           style={{ 
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            padding: '4rem 2rem', border: '2px dashed var(--accent-purple)', cursor: 'pointer',
-            background: 'rgba(157, 78, 221, 0.05)'
+            padding: '4rem 2rem', border: '2px dashed var(--accent-blue)', cursor: 'pointer',
+            background: 'rgba(0, 102, 255, 0.05)'
           }}
         >
-          <motion.div animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
-            <Upload size={48} color="var(--accent-purple)" style={{ marginBottom: '1rem' }} />
+          <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
+            <Upload size={48} color="var(--accent-blue)" style={{ marginBottom: '1rem' }} />
           </motion.div>
-          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Drag & Drop Massive Files Here</h2>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>Upload Document or Picture</h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '1.5rem', textAlign: 'center' }}>
-            Supports chunked, resumable uploads for enterprise files.
+            Drop PDF invoices, contracts, IDs, reports, or pictures here (PDF, PNG, JPG, WEBP)
           </p>
-          <div style={{ display: 'flex', gap: '1rem' }}>
-            <span className="badge" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid var(--border-light)' }}>Supports up to 2GB</span>
-            <span className="badge" style={{ background: 'rgba(0,229,255,0.1)', color: 'var(--accent-blue)', border: '1px solid rgba(0,229,255,0.3)' }}>Parallel Uploads Active</span>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <span className="badge" style={{ background: 'var(--bg-deep)', color: 'var(--text-secondary)', border: '1px solid var(--border-light)' }}>PDF • PNG • JPG • WEBP</span>
+            <span className="badge" style={{ background: 'rgba(6,95,212,0.08)', color: 'var(--accent-blue)', border: '1px solid rgba(6,95,212,0.2)' }}>Windows Native OCR Active</span>
           </div>
-          <input type="file" style={{ display: 'none' }} onChange={handleFileSelect} />
+          <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.bmp,.tiff,image/*,application/pdf" style={{ display: 'none' }} onChange={handleFileSelect} />
         </label>
       )}
 
@@ -345,9 +361,16 @@ export default function UploadZone({ onUploadComplete }) {
                 </>
               )}
               {status === 'error' && (
-                <button className="btn-secondary" onClick={togglePause} style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <RotateCcw size={16} /> Retry Failed Chunks
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {file && (
+                    <button className="btn-primary" onClick={() => startUploadProcess(file)} style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <RotateCcw size={14} /> Retry Upload
+                    </button>
+                  )}
+                  <button className="btn-secondary" onClick={reset} style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem' }}>
+                    Choose Different File
+                  </button>
+                </div>
               )}
               {status === 'complete' && (
                 <div style={{ color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}>
@@ -375,7 +398,7 @@ export default function UploadZone({ onUploadComplete }) {
                 transition={{ duration: 0.2 }}
                 style={{ 
                   height: '100%', 
-                  background: status === 'error' ? 'var(--accent-red)' : status === 'complete' ? 'var(--accent-green)' : 'linear-gradient(90deg, var(--accent-blue), var(--accent-purple))'
+                  background: status === 'error' ? 'var(--accent-red)' : status === 'complete' ? 'var(--accent-green)' : 'var(--accent-blue)'
                 }} 
               />
             </div>
@@ -383,7 +406,7 @@ export default function UploadZone({ onUploadComplete }) {
 
           {/* Telemetry Footer */}
           {(status === 'uploading' || status === 'paused') && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', background: '#050505', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', background: 'var(--bg-deep)', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Upload Speed</div>
                 <div style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--accent-blue)' }}>{status === 'paused' ? '--' : formatBytes(speed) + '/s'}</div>
@@ -394,7 +417,7 @@ export default function UploadZone({ onUploadComplete }) {
               </div>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Active Threads</div>
-                <div style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--accent-purple)' }}>{uploadStateRef.current.activeWorkers} / {MAX_CONCURRENCY}</div>
+                <div style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--accent-blue)' }}>{uploadStateRef.current.activeWorkers} / {MAX_CONCURRENCY}</div>
               </div>
             </div>
           )}

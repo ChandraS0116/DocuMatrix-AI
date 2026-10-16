@@ -17,12 +17,14 @@ const KnowledgeGraph = lazy(() => import('./pages/KnowledgeGraph'));
 const BillingDashboard = lazy(() => import('./pages/BillingDashboard'));
 const PromptStudio = lazy(() => import('./pages/PromptStudio'));
 const ReviewQueue = lazy(() => import('./pages/ReviewQueue'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsAndConditions = lazy(() => import('./pages/TermsAndConditions'));
 import DashboardSpatial from './pages/DashboardSpatial';
 
 function App() {
   return (
     <BrowserRouter>
-      <Suspense fallback={<div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-deep)', color: 'var(--accent-purple)' }}>Loading DocuMatrix...</div>}>
+      <Suspense fallback={<div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-deep)', color: 'var(--accent-blue)' }}>Loading DocuMatrix...</div>}>
         <Routes>
           <Route path="/showcase" element={<ShowcaseMode />} />
           <Route path="*" element={
@@ -44,6 +46,8 @@ function App() {
                   <Route path="/trace/:id" element={<TraceExplorer />} />
                   <Route path="/demo/interview" element={<InterviewMode />} />
                   <Route path="/settings" element={<SettingsCenter />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
                 </Routes>
               </Suspense>
             </AppLayout>

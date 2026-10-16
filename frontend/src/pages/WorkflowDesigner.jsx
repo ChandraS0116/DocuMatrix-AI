@@ -29,8 +29,8 @@ const initialNodes = [
   // Subflow / Group Node example
   { id: 'group-1', type: 'group', position: { x: 750, y: 0 }, style: { width: 250, height: 350, backgroundColor: 'rgba(0,0,0,0.1)', border: '1px dashed var(--border-light)', borderRadius: '8px' }, data: { label: 'Data Processing' } },
   
-  { id: 'risk', type: 'custom', position: { x: 20, y: 50 }, parentNode: 'group-1', extent: 'parent', data: { label: 'Risk Analysis', type: 'ai', status: 'pending' } },
-  { id: 'extract', type: 'custom', position: { x: 20, y: 150 }, parentNode: 'group-1', extent: 'parent', data: { label: 'Entity Extraction', type: 'ai', status: 'pending' } },
+  { id: 'risk', type: 'custom', position: { x: 20, y: 50 }, parentId: 'group-1', extent: 'parent', data: { label: 'Risk Analysis', type: 'ai', status: 'pending' } },
+  { id: 'extract', type: 'custom', position: { x: 20, y: 150 }, parentId: 'group-1', extent: 'parent', data: { label: 'Entity Extraction', type: 'ai', status: 'pending' } },
   
   { id: 'review', type: 'custom', position: { x: 1050, y: 150 }, data: { label: 'Human Review', type: 'human', status: 'pending' } },
 ];
@@ -95,7 +95,7 @@ function WorkflowDesignerInner() {
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', margin: '-2rem' }}>
+    <div style={{ height: 'calc(100vh - 12rem)', minHeight: '650px', display: 'flex', flexDirection: 'column', margin: '-1.5rem -1.75rem 0 -1.75rem' }}>
       
       {/* Top Toolbar */}
       <div style={{ 
@@ -138,10 +138,10 @@ function WorkflowDesignerInner() {
         </div>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative', minHeight: '580px' }}>
         
         {/* React Flow Canvas */}
-        <div style={{ flex: 1, height: '100%' }}>
+        <div style={{ flex: 1, height: '100%', minHeight: '580px', position: 'relative' }}>
           <ReactFlow
             nodes={visibleNodes}
             edges={edges}
@@ -152,14 +152,14 @@ function WorkflowDesignerInner() {
             onSelectionChange={onSelectionChange}
             fitView
             colorMode={theme.isDark ? 'dark' : 'light'}
-            style={{ backgroundColor: 'var(--bg-deep)' }}
+            style={{ backgroundColor: 'var(--bg-deep)', width: '100%', height: '100%' }}
           >
             <Background color="var(--border-light)" gap={16} size={1} />
             <Controls style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }} />
             <MiniMap 
               nodeColor={(n) => {
                 if (n.data?.type === 'upload') return 'var(--accent-blue)';
-                if (n.data?.type === 'ai') return 'var(--accent-purple)';
+                if (n.data?.type === 'ai') return 'var(--accent-blue)';
                 if (n.data?.type === 'human') return 'var(--accent-green)';
                 return 'var(--text-muted)';
               }}
@@ -171,7 +171,7 @@ function WorkflowDesignerInner() {
               <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Nodes</div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <div style={{ width: '24px', height: '24px', borderRadius: '4px', background: 'var(--accent-blue)' }} title="Upload Node"></div>
-                <div style={{ width: '24px', height: '24px', borderRadius: '4px', background: 'var(--accent-purple)' }} title="AI Node"></div>
+                <div style={{ width: '24px', height: '24px', borderRadius: '4px', background: 'var(--accent-blue)' }} title="AI Node"></div>
                 <div style={{ width: '24px', height: '24px', borderRadius: '4px', background: 'var(--accent-green)' }} title="Human Review"></div>
               </div>
             </Panel>

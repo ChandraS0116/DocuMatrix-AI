@@ -70,7 +70,7 @@ export default function NodeInspector({ node, onClose }) {
           {activeTab === 'telemetry' && (
             <motion.div key="telemetry" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
               <MetricCard icon={<Clock />} title="Avg Execution Time" value="1.24s" subtext="P99: 2.1s" color="var(--accent-blue)" />
-              <MetricCard icon={<HardDrive />} title="Peak VRAM Usage" value="4.2 GB" subtext="Instance: g4dn.xlarge" color="var(--accent-purple)" />
+              <MetricCard icon={<HardDrive />} title="Peak VRAM Usage" value="4.2 GB" subtext="Instance: g4dn.xlarge" color="var(--accent-blue)" />
               <MetricCard icon={<DollarSign />} title="Cost per 1k Docs" value="$12.50" subtext="Compute + Token cost" color="var(--accent-green)" />
               <MetricCard icon={<Activity />} title="Success Rate" value="99.4%" subtext="0.6% required fallback" color="var(--text-primary)" />
             </motion.div>
@@ -90,7 +90,7 @@ export default function NodeInspector({ node, onClose }) {
                  <span>Extracted JSON Payload</span>
                </div>
                <div className="glass-panel" style={{ padding: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                 <Database size={16} color="var(--accent-purple)" />
+                 <Database size={16} color="var(--accent-blue)" />
                  <span>Vector Embeddings (768d)</span>
                </div>
             </motion.div>

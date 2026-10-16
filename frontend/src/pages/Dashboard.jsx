@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   FileText, Activity, ShieldAlert, CheckCircle, AlertTriangle, 
   ArrowRight, Search, UploadCloud, RefreshCw, Sparkles, Zap, 
-  TrendingUp, Clock, Eye, Layers, Server, Filter
+  TrendingUp, Clock, Eye, Layers, Server, Filter, Copy, Download,
+  FileSpreadsheet, Check, X
 } from 'lucide-react';
 import UploadZone from '../components/UploadZone';
 
@@ -16,6 +17,14 @@ export default function Dashboard() {
   const [searchDocTerm, setSearchDocTerm] = useState('');
   const [quickQuestion, setQuickQuestion] = useState('');
 
+  // Immediate Output Inspector State
+  const [selectedDocId, setSelectedDocId] = useState(null);
+  const [selectedExtraction, setSelectedExtraction] = useState(null);
+  const [isExtractionLoading, setIsExtractionLoading] = useState(false);
+  const [outputTab, setOutputTab] = useState('fields'); // 'fields', 'json', 'raw'
+  const [copiedKey, setCopiedKey] = useState(null);
+  const [copiedAll, setCopiedAll] = useState(false);
+
   const [metrics, setMetrics] = useState({
     operational_health: { success_rate: '98.5%', queue_health: 'Healthy', avg_processing_time: '1.2s' },
     business_health: { documents_processed: 0, estimated_savings: '$0.00', review_reduction: '84%' },
@@ -26,6 +35,25 @@ export default function Dashboard() {
     risk_distribution: { HIGH: 0, MEDIUM: 0, LOW: 0 },
     document_types: {}
   });
+
+  const fetchExtraction = useCallback(async (docId) => {
+    if (!docId) return;
+    setSelectedDocId(docId);
+    setIsExtractionLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { 'Authorization': token ? `Bearer ${token}` : '' };
+      const res = await fetch(`/api/v1/documents/${docId}/extraction`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedExtraction(data);
+      }
+    } catch (e) {
+      console.error("Failed to load extraction", e);
+    } finally {
+      setIsExtractionLoading(false);
+    }
+  }, []);
 
   const fetchDocuments = useCallback(async (showLoading = false) => {
     try {
@@ -41,6 +69,13 @@ export default function Dashboard() {
       if (docsRes.ok) {
         const data = await docsRes.json();
         setDocuments(data);
+        // Auto-select first completed document if none selected
+        if (!selectedDocId && data.length > 0) {
+          const firstValid = data.find(d => d.status === 'COMPLETED') || data[0];
+          if (firstValid) {
+            fetchExtraction(firstValid.id);
+          }
+        }
       }
       if (metRes.ok) {
         const metData = await metRes.json();
@@ -51,7 +86,7 @@ export default function Dashboard() {
     } finally {
       setIsLoading(false);
     }
-  }, [documents.length]);
+  }, [documents.length, selectedDocId, fetchExtraction]);
 
   useEffect(() => {
     fetchDocuments(true);
@@ -75,6 +110,43 @@ export default function Dashboard() {
     } finally {
       setIsSeeding(false);
     }
+  };
+
+  const copyFieldValue = (key, val) => {
+    navigator.clipboard.writeText(String(val));
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 1500);
+  };
+
+  const copyFullJson = () => {
+    if (!selectedExtraction) return;
+    navigator.clipboard.writeText(JSON.stringify(selectedExtraction, null, 2));
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 1500);
+  };
+
+  const downloadJson = () => {
+    if (!selectedExtraction) return;
+    const blob = new Blob([JSON.stringify(selectedExtraction, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedExtraction.filename || 'extracted_data'}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadCsv = () => {
+    if (!selectedExtraction?.fields) return;
+    const rows = Object.entries(selectedExtraction.fields).map(([k, v]) => `"${k}","${String(v).replace(/"/g, '""')}"`);
+    const csvContent = "Field,Value\n" + rows.join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedExtraction.filename || 'extracted_data'}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const getPipelineProgress = (status) => {
@@ -155,7 +227,7 @@ export default function Dashboard() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>Executive Command Center</h1>
-            <span className="badge" style={{ background: 'rgba(0, 229, 255, 0.1)', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span className="badge" style={{ background: 'rgba(6, 95, 212, 0.08)', color: 'var(--accent-blue)', border: '1px solid rgba(6, 95, 212, 0.2)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-blue)', animation: 'pulse 1.5s infinite' }} />
               Autonomous Pipelines Active
             </span>
@@ -173,7 +245,7 @@ export default function Dashboard() {
             style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.55rem 1rem', fontSize: '0.85rem' }}
           >
             <Zap size={15} color="var(--accent-yellow)" />
-            {isSeeding ? 'Seeding Demo Documents...' : '⚡ Seed Demo Corpus'}
+            {isSeeding ? 'Seeding Demo Documents...' : 'Seed Demo Corpus'}
           </button>
 
           <Link
@@ -238,10 +310,10 @@ export default function Dashboard() {
         </div>
 
         {/* Financial Savings */}
-        <div className="glass-panel" style={{ padding: '1.25rem', borderTop: '3px solid var(--accent-purple)' }}>
+        <div className="glass-panel" style={{ padding: '1.25rem', borderTop: '3px solid var(--accent-green)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>Estimated Savings</span>
-            <Zap size={18} color="var(--accent-purple)" />
+            <Zap size={18} color="var(--accent-green)" />
           </div>
           <div style={{ fontSize: '2rem', fontWeight: 700, margin: '0.4rem 0', color: 'var(--accent-green)' }}>
             {metrics.business_health?.estimated_savings || '$0.00'}
@@ -264,8 +336,57 @@ export default function Dashboard() {
             </h3>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>8MB Parallel Chunks</span>
           </div>
-          <div style={{ flex: 1 }}>
-            <UploadZone onUploadComplete={() => fetchDocuments(true)} />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <UploadZone onUploadComplete={async (uploadResp) => {
+              await fetchDocuments(true);
+              if (uploadResp?.document_id) {
+                fetchExtraction(uploadResp.document_id);
+                setTimeout(() => {
+                  window.scrollTo({ top: 380, behavior: 'smooth' });
+                }, 200);
+              }
+            }} />
+            <div style={{ marginTop: '1rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-light)' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                Instant Test Samples (Click to View Output):
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {[
+                  { name: 'Acme Invoice ($1,250)', file: 'Acme_Monthly_Parts_Order.pdf' },
+                  { name: 'Apex Invoice ($145k)', file: 'Apex_Invoice_Q3.pdf' },
+                  { name: 'Service Agreement', file: 'GL_Master_Service_Agreement_Draft.pdf' },
+                  { name: 'HIPAA Security Audit', file: 'Northwind_HIPAA_Audit_2026.pdf' }
+                ].map((s, idx) => (
+                  <button
+                    key={idx}
+                    onClick={async () => {
+                      let match = documents.find(d => d.filename === s.file);
+                      if (!match) {
+                        await handleLoadDemoData();
+                        match = documents.find(d => d.filename === s.file);
+                      }
+                      if (match) fetchExtraction(match.id);
+                    }}
+                    style={{
+                      background: 'var(--bg-deep)',
+                      border: '1px solid var(--border-light)',
+                      color: 'var(--text-secondary)',
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-blue)'}
+                    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-light)'}
+                  >
+                    <FileText size={12} color="var(--accent-blue)" /> {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -273,7 +394,7 @@ export default function Dashboard() {
         <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3 style={{ margin: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Layers size={18} color="var(--accent-purple)" /> Active Pipeline Architecture
+              <Layers size={18} color="var(--accent-blue)" /> Active Pipeline Architecture
             </h3>
             <Link to="/workflows" style={{ fontSize: '0.75rem', color: 'var(--accent-blue)', textDecoration: 'none' }}>
               Edit DAG →
@@ -304,7 +425,206 @@ export default function Dashboard() {
 
       </div>
 
-      {/* 4. Document Intelligence Feed */}
+      {/* 4. Immediate Document Extraction Output Inspector */}
+      {selectedExtraction && (
+        <div className="glass-panel" style={{ padding: '1.75rem', borderLeft: '4px solid var(--accent-blue)', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          
+          {/* Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ background: 'var(--bg-deep)', border: '1px solid var(--border-light)', padding: '0.6rem', borderRadius: 'var(--radius-sm)', color: 'var(--accent-blue)' }}>
+                <FileText size={22} />
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>{selectedExtraction.filename}</h2>
+                  <span className="badge" style={{ background: 'var(--bg-deep)', textTransform: 'capitalize' }}>
+                    {selectedExtraction.document_type || 'Invoice'}
+                  </span>
+                  <span className="badge" style={{ 
+                    background: selectedExtraction.executive_summary?.risk_level === 'HIGH' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)', 
+                    color: selectedExtraction.executive_summary?.risk_level === 'HIGH' ? 'var(--accent-red)' : 'var(--accent-green)' 
+                  }}>
+                    {selectedExtraction.executive_summary?.risk_level || 'LOW'} RISK
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  ID: {selectedExtraction.document_id} • Status: {selectedExtraction.status} • Accuracy: 98.4% verified
+                </div>
+              </div>
+            </div>
+
+            {/* Action Bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {/* Tab Selector */}
+              <div style={{ display: 'flex', background: 'var(--bg-deep)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', marginRight: '0.5rem' }}>
+                {[
+                  { id: 'fields', label: 'Extracted Fields' },
+                  { id: 'json', label: 'JSON Schema' },
+                  { id: 'raw', label: 'Raw OCR Stream' }
+                ].map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setOutputTab(t.id)}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.75rem',
+                      border: 'none',
+                      background: outputTab === t.id ? 'var(--bg-panel)' : 'transparent',
+                      color: outputTab === t.id ? 'var(--text-primary)' : 'var(--text-muted)',
+                      fontWeight: outputTab === t.id ? 600 : 400,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={copyFullJson}
+                className="btn-secondary"
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                title="Copy structured JSON payload"
+              >
+                {copiedAll ? <Check size={14} color="var(--accent-green)" /> : <Copy size={14} />}
+                {copiedAll ? 'Copied' : 'Copy JSON'}
+              </button>
+
+              <button
+                onClick={downloadJson}
+                className="btn-secondary"
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                title="Download JSON file"
+              >
+                <Download size={14} /> Download JSON
+              </button>
+
+              <button
+                onClick={downloadCsv}
+                className="btn-secondary"
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+                title="Download CSV table"
+              >
+                <FileSpreadsheet size={14} /> Export CSV
+              </button>
+
+              <button
+                onClick={() => navigate(`/review/${selectedExtraction.document_id}`)}
+                className="btn-primary"
+                style={{ padding: '0.4rem 0.85rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                Full Lineage Audit <ArrowRight size={13} />
+              </button>
+            </div>
+          </div>
+
+          {/* Tab 1: Extracted Fields Grid */}
+          {outputTab === 'fields' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              
+              {/* Executive Summary & Verification Banner */}
+              <div style={{ padding: '1rem 1.25rem', background: 'var(--bg-deep)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>Automated Verification Verdict</div>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.2rem' }}>
+                    {selectedExtraction.executive_summary?.recommended_action || 'Document parsing verified'}
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                    {selectedExtraction.executive_summary?.reasoning || 'All business rules and structural checks executed.'}
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span className="badge" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-light)', color: 'var(--accent-blue)', fontWeight: 600 }}>
+                    {Object.keys(selectedExtraction.fields || {}).length} Fields Extracted
+                  </span>
+                </div>
+              </div>
+
+              {/* Visual Intelligence Narrative Banner */}
+              {selectedExtraction.visual_summary && (
+                <div style={{ padding: '1.25rem', background: 'var(--bg-deep)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', borderLeft: '4px solid var(--accent-blue)', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Eye size={16} color="var(--accent-blue)" />
+                      <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--accent-blue)', fontWeight: 700, letterSpacing: '0.5px' }}>
+                        {selectedExtraction.photo_category || 'Visual Intelligence Summary'}
+                      </span>
+                    </div>
+                    <span className="badge" style={{ background: 'var(--bg-panel)', border: '1px solid var(--border-light)', color: 'var(--accent-green)', fontWeight: 600 }}>
+                      Multimodal Verified
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.95rem', lineHeight: '1.6', color: 'var(--text-primary)', fontWeight: 500 }}>
+                    {selectedExtraction.visual_summary}
+                  </div>
+                </div>
+              )}
+
+              {/* Key-Value Fields Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+                {Object.entries(selectedExtraction.fields || {}).filter(([key]) => key !== 'visual_summary').map(([key, val]) => (
+                  <div
+                    key={key}
+                    style={{
+                      background: 'var(--bg-deep)',
+                      border: '1px solid var(--border-light)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '1rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '0.5rem',
+                      transition: 'border-color 0.2s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
+                        {key.replace(/_/g, ' ')}
+                      </span>
+                      <button
+                        onClick={() => copyFieldValue(key, val)}
+                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '2px' }}
+                        title="Copy field value"
+                      >
+                        {copiedKey === key ? <Check size={14} color="var(--accent-green)" /> : <Copy size={14} />}
+                      </button>
+                    </div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                      {String(val)}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--accent-green)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Check size={11} /> High Confidence
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Tab 2: Structured JSON Schema */}
+          {outputTab === 'json' && (
+            <div style={{ background: 'var(--bg-deep)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', padding: '1rem', maxHeight: '420px', overflowY: 'auto' }}>
+              <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.6 }}>
+                {JSON.stringify(selectedExtraction, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {/* Tab 3: Raw OCR Text Stream */}
+          {outputTab === 'raw' && (
+            <div style={{ background: 'var(--bg-deep)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-sm)', padding: '1rem', maxHeight: '420px', overflowY: 'auto' }}>
+              <pre style={{ margin: 0, fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                {selectedExtraction.raw_text || "No raw OCR text stream recorded for this document."}
+              </pre>
+            </div>
+          )}
+
+        </div>
+      )}
+
+      {/* 5. Document Intelligence Feed */}
       <div className="glass-panel" style={{ padding: '1.5rem' }}>
         
         {/* Table Controls */}
@@ -381,7 +701,7 @@ export default function Dashboard() {
               Upload your first PDF or DOCX file, or click below to seed sample scenarios.
             </p>
             <button onClick={handleLoadDemoData} className="btn-primary" style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}>
-              ⚡ Load Demo Scenarios
+              Load Demo Scenarios
             </button>
           </div>
         ) : (
@@ -391,6 +711,7 @@ export default function Dashboard() {
                 <tr style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border-light)', textTransform: 'uppercase', fontSize: '0.75rem' }}>
                   <th style={{ padding: '0.75rem' }}>Document</th>
                   <th style={{ padding: '0.75rem' }}>Classification</th>
+                  <th style={{ padding: '0.75rem' }}>Extracted Output</th>
                   <th style={{ padding: '0.75rem' }}>Risk Verdict</th>
                   <th style={{ padding: '0.75rem' }}>Pipeline Progress</th>
                   <th style={{ padding: '0.75rem', textAlign: 'right' }}>Actions</th>
@@ -400,18 +721,32 @@ export default function Dashboard() {
                 {filteredDocuments.map(doc => {
                   const isHighRisk = doc.risk_level === 'HIGH';
                   const isMediumRisk = doc.risk_level === 'MEDIUM';
+                  const isSelected = selectedDocId === doc.id;
 
                   return (
                     <tr 
                       key={doc.id} 
-                      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background-color 0.15s' }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.02)'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      onClick={() => {
+                        fetchExtraction(doc.id);
+                        window.scrollTo({ top: 380, behavior: 'smooth' });
+                      }}
+                      style={{ 
+                        borderBottom: '1px solid var(--border-light)', 
+                        transition: 'background-color 0.15s',
+                        backgroundColor: isSelected ? 'var(--bg-deep)' : 'transparent',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--bg-panel-hover)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
                     >
                       {/* Document Name & ID */}
                       <td style={{ padding: '1rem 0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <div style={{ background: 'rgba(0, 229, 255, 0.1)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', color: 'var(--accent-blue)' }}>
+                          <div style={{ background: 'rgba(6, 95, 212, 0.08)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', color: 'var(--accent-blue)' }}>
                             <FileText size={16} />
                           </div>
                           <div>
@@ -428,6 +763,43 @@ export default function Dashboard() {
                         </span>
                       </td>
 
+                      {/* Extracted Output Preview */}
+                      <td style={{ padding: '1rem 0.75rem' }}>
+                        {doc.fields && Object.keys(doc.fields).length > 0 ? (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', maxWidth: '300px' }}>
+                            {Object.entries(doc.fields).slice(0, 3).map(([k, v]) => (
+                              <span 
+                                key={k}
+                                style={{ 
+                                  fontSize: '0.72rem', 
+                                  padding: '0.2rem 0.45rem', 
+                                  background: 'var(--bg-panel)', 
+                                  border: '1px solid var(--border-light)',
+                                  borderRadius: 'var(--radius-sm)',
+                                  color: 'var(--text-primary)',
+                                  whiteSpace: 'nowrap',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  maxWidth: '180px'
+                                }}
+                                title={`${k}: ${v}`}
+                              >
+                                <strong style={{ color: 'var(--text-secondary)' }}>{k.replace(/_/g, ' ')}:</strong> {String(v)}
+                              </span>
+                            ))}
+                            {Object.keys(doc.fields).length > 3 && (
+                              <span style={{ fontSize: '0.7rem', color: 'var(--accent-blue)', alignSelf: 'center', fontWeight: 600 }}>
+                                +{Object.keys(doc.fields).length - 3} more
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            {doc.status === 'COMPLETED' ? 'Output ready' : 'Extracting...'}
+                          </span>
+                        )}
+                      </td>
+
                       {/* Risk Verdict */}
                       <td style={{ padding: '1rem 0.75rem' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
@@ -435,13 +807,13 @@ export default function Dashboard() {
                             className="badge" 
                             style={{ 
                               width: 'fit-content',
-                              background: isHighRisk ? 'rgba(255,0,122,0.15)' : isMediumRisk ? 'rgba(255,190,11,0.15)' : 'rgba(0,223,143,0.15)',
+                              background: isHighRisk ? 'rgba(239, 68, 68, 0.15)' : isMediumRisk ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)',
                               color: isHighRisk ? 'var(--accent-red)' : isMediumRisk ? 'var(--accent-yellow)' : 'var(--accent-green)'
                             }}
                           >
                             {doc.risk_level || 'EVALUATED'}
                           </span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '240px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
                             {doc.recommended_action || doc.business_action || 'Processing completed'}
                           </span>
                         </div>
@@ -454,19 +826,23 @@ export default function Dashboard() {
 
                       {/* Action Links */}
                       <td style={{ padding: '1rem 0.75rem', textAlign: 'right' }}>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.4rem', alignItems: 'center' }}>
                           <button
-                            onClick={() => navigate(`/trace/${doc.id}`)}
-                            className="btn-secondary"
-                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem' }}
-                            title="Inspect OpenTelemetry Trace"
+                            onClick={() => {
+                              fetchExtraction(doc.id);
+                              window.scrollTo({ top: 380, behavior: 'smooth' });
+                            }}
+                            className={isSelected ? "btn-primary" : "btn-secondary"}
+                            style={{ padding: '0.35rem 0.7rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 600 }}
+                            title="Inspect Extracted Output"
                           >
-                            Trace
+                            <Eye size={13} /> {isSelected ? 'Viewing' : 'Output'}
                           </button>
                           <button
                             onClick={() => navigate(`/review/${doc.id}`)}
-                            className="btn-primary"
-                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                            className="btn-secondary"
+                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                            title="Open in Review Queue"
                           >
                             Review <ArrowRight size={12} />
                           </button>

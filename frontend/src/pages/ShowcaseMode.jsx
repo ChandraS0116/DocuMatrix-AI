@@ -114,17 +114,17 @@ export default function ShowcaseMode() {
           exit={{ opacity: 0, y: -20, scale: 0.95 }}
           style={{
             background: 'var(--bg-panel)',
-            border: '1px solid var(--accent-purple)',
+            border: '1px solid var(--accent-blue)',
             borderRadius: 'var(--radius-md)',
             padding: '1.5rem',
             width: '400px',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(187,134,252,0.2)',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(0, 102, 255, 0.2)',
             backdropFilter: 'blur(10px)'
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-              <div style={{ color: 'var(--accent-purple)' }}>{currentStepData.icon}</div>
+              <div style={{ color: 'var(--accent-blue)' }}>{currentStepData.icon}</div>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>{currentStepData.subtitle}</div>
                 <h3 style={{ fontSize: '1.25rem', margin: 0, color: 'var(--text-primary)' }}>{currentStepData.title}</h3>
@@ -141,14 +141,14 @@ export default function ShowcaseMode() {
               {steps.map((s, i) => (
                 <div key={s.id} style={{ 
                   width: '30px', height: '4px', borderRadius: '2px', 
-                  background: i === step ? 'var(--accent-purple)' : i < step ? 'rgba(187,134,252,0.3)' : 'var(--bg-deep)'
+                  background: i === step ? 'var(--accent-blue)' : i < step ? 'rgba(0, 102, 255, 0.3)' : 'var(--bg-deep)'
                 }}>
                   {i === step && isPlaying && (
                     <motion.div 
                       initial={{ width: '0%' }} 
                       animate={{ width: '100%' }} 
                       transition={{ duration: s.duration / 1000, ease: 'linear' }}
-                      style={{ height: '100%', background: 'var(--accent-purple)', borderRadius: '2px' }} 
+                      style={{ height: '100%', background: 'var(--accent-blue)', borderRadius: '2px' }} 
                     />
                   )}
                 </div>
@@ -161,10 +161,10 @@ export default function ShowcaseMode() {
         </motion.div>
       </AnimatePresence>
 
-      <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-deep)', padding: '0.5rem', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)' }}>
+      <div style={{ display: 'flex', gap: '0.5rem', background: 'var(--bg-deep)', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
         <button 
           onClick={() => setIsPlaying(!isPlaying)}
-          style={{ background: 'var(--accent-purple)', color: '#fff', border: 'none', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          style={{ background: 'var(--accent-blue)', color: '#fff', border: 'none', width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
         >
           {isPlaying ? <Pause size={18} /> : <Play size={18} />}
         </button>
@@ -176,7 +176,7 @@ export default function ShowcaseMode() {
               window.location.href = '/';
             }
           }}
-          style={{ background: 'transparent', color: 'var(--text-primary)', border: 'none', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          style={{ background: 'transparent', color: 'var(--text-primary)', border: 'none', width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
         >
           {step >= steps.length - 1 ? <X size={18} /> : <SkipForward size={18} />}
         </button>

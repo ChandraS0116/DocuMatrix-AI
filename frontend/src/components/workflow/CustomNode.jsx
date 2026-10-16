@@ -24,7 +24,7 @@ export default function CustomNode({ data, selected }) {
       Icon = UploadCloud;
       break;
     case 'ai':
-      iconColor = 'var(--accent-purple)';
+      iconColor = 'var(--accent-blue)';
       Icon = Cpu;
       break;
     case 'human':

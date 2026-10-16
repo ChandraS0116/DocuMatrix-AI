@@ -17,6 +17,11 @@ MINIO_ACCESS_KEY = os.getenv("MINIO_ROOT_USER", "admin")
 MINIO_SECRET_KEY = os.getenv("MINIO_ROOT_PASSWORD", "password")
 BUCKET_NAME = "documents"
 
+import tempfile
+
+LOCAL_STORAGE_DIR = os.path.join(tempfile.gettempdir(), "docintel_storage")
+os.makedirs(LOCAL_STORAGE_DIR, exist_ok=True)
+
 class MinioStorageService:
     def __init__(self):
         self.s3 = None
@@ -33,15 +38,14 @@ class MinioStorageService:
                     region_name='us-east-1'
                 )
                 self.enabled = True
-                # Lazy initialization: don't check bucket at import time
                 logger.info("MinioStorageService initialized.")
             except Exception as e:
                 logger.error(f"MinioStorageService failed to initialize: {e}")
         else:
             if os.getenv("USE_MOCK_STORAGE", "false").lower() == "true":
-                logger.info("MinioStorageService disabled via USE_MOCK_STORAGE=true.")
+                logger.info("MinioStorageService running in local storage fallback mode.")
             else:
-                logger.warning("MinioStorageService disabled: boto3 missing or MINIO_URL not set.")
+                logger.info("MinioStorageService running in local storage fallback mode (MINIO_URL not set).")
             
     def _ensure_bucket_exists(self):
         if not self.enabled or not self.s3:
@@ -55,8 +59,16 @@ class MinioStorageService:
                 logger.error(f"Failed to create bucket {BUCKET_NAME}: {e}")
             
     def upload_file(self, file_bytes: bytes, storage_path: str):
-        if not self.enabled:
-            logger.warning(f"Storage disabled. Mock upload for {storage_path}.")
+        # Save locally so OCR and ML pipelines can always access file bytes
+        local_path = os.path.join(LOCAL_STORAGE_DIR, storage_path.replace("/", os.sep))
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        try:
+            with open(local_path, "wb") as f:
+                f.write(file_bytes)
+        except Exception as e:
+            logger.error(f"Failed to save local file {local_path}: {e}")
+
+        if not self.enabled or not self.s3:
             return storage_path
             
         self._ensure_bucket_exists()
@@ -67,19 +79,24 @@ class MinioStorageService:
                 Body=file_bytes
             )
         except Exception as e:
-            logger.error(f"Failed to upload {storage_path}: {e}")
+            logger.error(f"Failed to upload {storage_path} to S3: {e}")
         return storage_path
         
     def download_file(self, storage_path: str) -> bytes:
-        if not self.enabled:
-            logger.warning(f"Storage disabled. Mock download for {storage_path}.")
-            return b""
-            
-        try:
-            response = self.s3.get_object(Bucket=BUCKET_NAME, Key=storage_path)
-            return response['Body'].read()
-        except Exception as e:
-            logger.error(f"Failed to download {storage_path}: {e}")
-            return b""
+        if self.enabled and self.s3:
+            try:
+                response = self.s3.get_object(Bucket=BUCKET_NAME, Key=storage_path)
+                return response['Body'].read()
+            except Exception as e:
+                logger.warning(f"S3 fetch failed ({e}), falling back to local file.")
+                
+        local_path = os.path.join(LOCAL_STORAGE_DIR, storage_path.replace("/", os.sep))
+        if os.path.exists(local_path):
+            try:
+                with open(local_path, "rb") as f:
+                    return f.read()
+            except Exception as e:
+                logger.error(f"Failed to read local file {local_path}: {e}")
+        return b""
 
 minio_service = MinioStorageService()

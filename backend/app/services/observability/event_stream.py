@@ -3,18 +3,9 @@ import uuid
 from datetime import datetime
 from app.models.database import EventStreamLog
 from sqlalchemy.orm import Session
-try:
-    import redis
-except ImportError:
-    redis = None
-import os
+from app.services.common.redis_client import get_safe_redis
 
-if redis:
-    redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
-else:
-    class MockRedis:
-        def xadd(self, n, d): pass
-    redis_client = MockRedis()
+redis_client = get_safe_redis()
 
 class EventStream:
     def publish(self, event_type: str, document_id: str, payload: dict, db: Session):

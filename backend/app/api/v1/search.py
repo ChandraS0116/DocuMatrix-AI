@@ -74,27 +74,48 @@ async def reindex_document(
     index_document_task.delay(document_id)
     return {"message": "Reindexing task enqueued", "document_id": document_id}
 
-class AskRequest(BaseModel):
-    query: str
+class SearchQueryRequest(BaseModel):
+    text: Optional[str] = None
+    query: Optional[str] = None
 
 @search_router.get("/semantic")
 async def semantic_search(
     q: str = Query(..., description="Natural language query"),
-    current_user: User = Depends(require_role("VIEWER"))
+    current_user: User = Depends(get_current_user)
 ):
     """
     Pure retrieval endpoint using hybrid kNN + BM25 with strict Tenant Isolation.
     """
-    hits = rag_orchestrator.semantic_search(q, tenant_id=current_user.tenant_id, top_k=10)
+    tenant_id = getattr(current_user, "tenant_id", "default") or "default"
+    hits = rag_orchestrator.semantic_search(q, tenant_id=tenant_id, top_k=10)
     return {"results": hits}
 
+@search_router.post("/search/query")
+@search_router.post("/query")
 @search_router.post("/ask")
-async def ask_question(
-    request: AskRequest,
-    current_user: User = Depends(require_role("VIEWER"))
+async def ask_or_query_question(
+    request: SearchQueryRequest,
+    current_user: User = Depends(get_current_user)
 ):
     """
     Core RAG endpoint returning a synthesized answer with exact chunk citations.
+    Supports both POST /api/v1/search/query (from SemanticSearch UI) and POST /api/v1/ask.
     """
-    result = rag_orchestrator.ask(request.query, tenant_id=current_user.tenant_id)
+    q = (request.text or request.query or "").strip()
+    if not q:
+        raise HTTPException(status_code=400, detail="Query text is required.")
+    tenant_id = getattr(current_user, "tenant_id", "default") or "default"
+    result = rag_orchestrator.ask(q, tenant_id=tenant_id)
     return result
+
+@search_router.get("/search/query")
+async def get_search_query(
+    text: Optional[str] = Query(None),
+    q: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user)
+):
+    query_str = (text or q or "").strip()
+    if not query_str:
+        raise HTTPException(status_code=400, detail="Query parameter 'text' or 'q' is required.")
+    tenant_id = getattr(current_user, "tenant_id", "default") or "default"
+    return rag_orchestrator.ask(query_str, tenant_id=tenant_id)

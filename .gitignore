@@ -53,6 +53,18 @@ pnpm-debug.log*
 /tmp/
 /temp/
 
+# SQLite Databases & Local Storage
+*.db
+*.sqlite
+*.sqlite3
+backend/docintel_local.db
+backend/storage_data/
+storage_data/
+
+# Scratch & Test Scripts
+scratch/
+backend/scratch/
+
 # OS metadata
 .DS_Store
 Thumbs.db

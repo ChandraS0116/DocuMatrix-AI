@@ -1,21 +1,9 @@
-try:
-    import redis
-except ImportError:
-    redis = None
 import json
 import os
 import uuid
+from app.services.common.redis_client import get_safe_redis
 
-if redis:
-    redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379/0"))
-else:
-    class MockRedis:
-        def get(self, k): return None
-        def setex(self, k, t, v): pass
-        def set(self, k, v): pass
-        def delete(self, *args): pass
-        def keys(self, p): return []
-    redis_client = MockRedis()
+redis_client = get_safe_redis()
 
 class ChaosController:
     def get_active_profile(self, tenant_id: str):

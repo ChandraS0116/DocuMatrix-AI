@@ -66,7 +66,7 @@ export default function PromptStudio() {
       <div className="glass-panel" style={{ padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.4rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Terminal color="var(--accent-purple)" size={24} /> Prompt Engineering & Versioning Studio
+            <Terminal color="var(--accent-blue)" size={24} /> Prompt Engineering & Versioning Studio
           </h1>
           <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.85rem' }}>
             Author, test, and hot-reload extraction prompts deployed to LayoutLM & DistilBERT inference workers.
@@ -130,8 +130,8 @@ export default function PromptStudio() {
               resize: 'none', 
               fontFamily: 'monospace', 
               fontSize: '0.95rem', 
-              background: '#07070b', 
-              color: 'var(--accent-blue)', 
+              background: 'var(--bg-deep)', 
+              color: 'var(--text-primary)', 
               padding: '1.25rem',
               borderRadius: 'var(--radius-md)',
               border: '1px solid var(--border-light)',
@@ -193,12 +193,12 @@ export default function PromptStudio() {
               flex: 1, 
               fontSize: '0.85rem', 
               color: 'var(--accent-green)', 
-              background: '#07070b', 
+              background: 'var(--bg-deep)', 
               padding: '1rem', 
               borderRadius: 'var(--radius-sm)', 
-              border: '1px solid var(--border-light)',
-              overflowX: 'auto',
-              margin: 0
+              border: '1px solid var(--border-light)', 
+              overflowX: 'auto', 
+              margin: 0 
             }}>
               {JSON.stringify(outputResult, null, 2)}
             </pre>

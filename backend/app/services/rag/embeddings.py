@@ -12,28 +12,12 @@ try:
 except ImportError:
     SentenceTransformer = None
 
-try:
-    import redis
-except ImportError:
-    redis = None
 import json
+from app.services.common.redis_client import get_safe_redis
 
 logger = logging.getLogger(__name__)
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
-if redis:
-    redis_client = redis.from_url(REDIS_URL)
-else:
-    class MockRedis:
-        def get(self, k): return None
-        def setex(self, k, t, v): pass
-        def set(self, k, v): pass
-        def delete(self, *args): pass
-        def keys(self, p): return []
-        def incr(self, k): return 1
-        def expire(self, k, t): pass
-        def xadd(self, n, d): pass
-    redis_client = MockRedis()
+redis_client = get_safe_redis()
 
 class EmbeddingGenerator:
     def __init__(self):
@@ -45,13 +29,22 @@ class EmbeddingGenerator:
             logger.info("Initialized OpenAI Embeddings (Primary)")
         elif SentenceTransformer:
             self.provider = "local"
-            self.model = SentenceTransformer('all-MiniLM-L6-v2')
+            self._model = None
             self.dim = 384
-            logger.info("Initialized SentenceTransformer Embeddings (Fallback)")
+            logger.info("SentenceTransformer Embeddings configured (Lazy Loaded)")
         else:
             self.provider = "none"
             self.dim = 0
             logger.warning("No embedding provider available.")
+
+    @property
+    def model(self):
+        if self._model is None and SentenceTransformer:
+            try:
+                self._model = SentenceTransformer('all-MiniLM-L6-v2')
+            except Exception as e:
+                logger.error(f"Failed to load SentenceTransformer model: {e}")
+        return self._model
 
     def generate(self, text: str, tenant_id: str = "default") -> dict:
         text_hash = hashlib.sha256(f"{tenant_id}:{text}".encode()).hexdigest()

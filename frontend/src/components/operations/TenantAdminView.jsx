@@ -89,7 +89,7 @@ export default function TenantAdminView() {
         </div>
         <div className="glass-panel" style={{ padding: '1.5rem' }}>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Isolated Clusters</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--accent-purple)' }}>{tenantStats.isolated_clusters}</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--accent-blue)' }}>{tenantStats.isolated_clusters}</div>
         </div>
         <div className="glass-panel" style={{ padding: '1.5rem' }}>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Over Quota</div>
@@ -117,7 +117,7 @@ export default function TenantAdminView() {
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{t.id}</div>
                 </td>
                 <td style={{ padding: '1rem 0.75rem' }}>
-                  <span className="badge" style={{ background: t.plan === 'Enterprise' ? 'rgba(187,134,252,0.1)' : 'rgba(255,255,255,0.1)', color: t.plan === 'Enterprise' ? 'var(--accent-purple)' : 'var(--text-primary)', marginBottom: '0.25rem', display: 'inline-block' }}>{t.plan}</span>
+                  <span className="badge" style={{ background: t.plan === 'Enterprise' ? 'rgba(0,102,255,0.1)' : 'rgba(255,255,255,0.1)', color: t.plan === 'Enterprise' ? 'var(--accent-blue)' : 'var(--text-primary)', marginBottom: '0.25rem', display: 'inline-block' }}>{t.plan}</span>
                   <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>\${t.mrr.toLocaleString()}/mo</div>
                 </td>
                 <td style={{ padding: '1rem 0.75rem', color: 'var(--text-primary)' }}>{t.users}</td>

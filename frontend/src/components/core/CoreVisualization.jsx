@@ -377,7 +377,7 @@ const EarthSystem = ({ orbitRadius, speed, themeColors }) => {
         {(!focusedPlanet || focusedPlanet.name !== 'Earth') && (
           <Html position={[0, 18, 0]} center zIndexRange={[100, 0]}>
             <div className="flex flex-col items-center pointer-events-none animate-pulse">
-              <div className="bg-blue-500/20 border border-blue-400/50 backdrop-blur-md px-3 py-1.5 rounded-full text-white text-xs font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(0,100,255,0.5)]">
+              <div className="bg-blue-500/20 border border-blue-400/50 backdrop-blur-md px-3 py-1.5 rounded-md text-white text-xs font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(0,100,255,0.5)]">
                 Dashboard & Upload
               </div>
               <div className="w-[1px] h-6 bg-gradient-to-b from-blue-400/50 to-transparent mt-1"></div>
@@ -829,16 +829,16 @@ export default function CoreVisualization() {
     if (!theme) {
       return {
         bgDeep: '#050510', bgPanel: '#111122', borderLight: '#333344',
-        textPrimary: '#ffffff', accentBlue: '#0066ff', accentPurple: '#8800ff'
+        textPrimary: '#ffffff', accentBlue: '#0066ff', accentPurple: '#475569'
       };
     }
-    const isDark = theme.name === 'Midnight';
+    const isDark = theme.isDark !== undefined ? theme.isDark : true;
     return {
-      bgDeep: isDark ? '#08080C' : '#E8ECEF', bgPanel: isDark ? '#12121A' : '#F5F7F9',
-      borderLight: isDark ? '#2A2A35' : '#D1D9E0', textPrimary: isDark ? '#F8F9FA' : '#1A1D20',
-      accentBlue: isDark ? '#4F8AFF' : '#0055FF', accentPurple: isDark ? '#9D4EDD' : '#7209B7'
+      bgDeep: isDark ? '#08080C' : '#f9f9f9', bgPanel: isDark ? '#12121A' : '#ffffff',
+      borderLight: isDark ? '#2A2A35' : '#e5e5e5', textPrimary: isDark ? '#F8F9FA' : '#0f0f0f',
+      accentBlue: isDark ? '#4F8AFF' : '#065fd4', accentPurple: isDark ? '#64748b' : '#475569'
     };
-  }, [theme?.name]);
+  }, [theme?.name, theme?.isDark]);
 
   return (
     <FocusContext.Provider value={{ focusedPlanet, setFocusedPlanet }}>
@@ -849,7 +849,7 @@ export default function CoreVisualization() {
           <div className="absolute top-6 left-6 z-50">
             <button 
               onClick={() => setFocusedPlanet(null)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full backdrop-blur-md transition-all shadow-lg hover:scale-105"
+              className="flex items-center gap-2 px-4 py-2 rounded-md backdrop-blur-md transition-all shadow-md"
               style={{
                 background: 'var(--bg-panel)',
                 border: '1px solid var(--accent-blue)',

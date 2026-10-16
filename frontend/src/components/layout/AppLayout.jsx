@@ -11,15 +11,11 @@ import CommandPalette from '../CommandPalette';
 import CoreVisualization from '../core/CoreVisualization';
 
 const TOP_NAV_ITEMS = [
-  { id: 'pipeline', label: 'Pipeline', route: '/', icon: <LayoutDashboard size={18} /> },
-  { id: 'monitor', label: 'Monitor', route: '/monitor', icon: <Activity size={18} /> },
+  { id: 'pipeline', label: 'Documents & Extraction', route: '/', icon: <FileText size={18} /> },
+  { id: 'search', label: 'Semantic Search', route: '/search', icon: <Search size={18} /> },
   { id: 'queue', label: 'Review Queue', route: '/queue', icon: <Inbox size={18} /> },
-  { id: 'search', label: 'Intelligence', route: '/search', icon: <Search size={18} /> },
-  { id: 'graph', label: 'Knowledge Graph', route: '/graph', icon: <Network size={18} /> },
   { id: 'workflows', label: 'Workflows', route: '/workflows', icon: <Workflow size={18} /> },
-  { id: 'prompts', label: 'Prompt Studio', route: '/prompts', icon: <Sparkles size={18} /> },
-  { id: 'operations', label: 'Operations', route: '/operations', icon: <Server size={18} /> },
-  { id: 'billing', label: 'Billing & Usage', route: '/billing', icon: <CreditCard size={18} /> },
+  { id: 'monitor', label: 'Operations & Traces', route: '/monitor', icon: <Activity size={18} /> },
   { id: 'settings', label: 'Settings', route: '/settings', icon: <Settings size={18} /> }
 ];
 
@@ -43,7 +39,7 @@ export default function AppLayout({ children }) {
         =========================================
       */}
       <header style={{ 
-        height: '64px', borderBottom: '1px solid var(--border-light)', backgroundColor: 'var(--bg-deep)',
+        height: '60px', borderBottom: '1px solid var(--border-light)', backgroundColor: 'var(--bg-panel)',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem', zIndex: 30,
         flexShrink: 0
       }}>
@@ -54,18 +50,18 @@ export default function AppLayout({ children }) {
             onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
             style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-light)',
-              borderRadius: 'var(--radius-md)', color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s'
+              padding: '0.45rem 0.85rem', background: 'var(--bg-deep)', border: '1px solid var(--border-light)',
+              borderRadius: 'var(--radius-sm)', color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s'
             }}
             onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--border-focus)'}
             onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-light)'}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Search size={16} />
-              <span style={{ fontSize: '0.9rem' }}>Search or jump to...</span>
+              <span style={{ fontSize: '0.85rem' }}>Search or jump to...</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', background: 'var(--bg-deep)', padding: '0.2rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border-light)' }}>
-              <Command size={12} /> K
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', background: 'var(--bg-panel)', padding: '0.15rem 0.4rem', borderRadius: '4px', border: '1px solid var(--border-light)' }}>
+              <Command size={11} /> K
             </div>
           </button>
         </div>
@@ -81,14 +77,15 @@ export default function AppLayout({ children }) {
                 title={item.label}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  width: '40px', height: '40px', borderRadius: 'var(--radius-md)',
+                  width: '38px', height: '38px', borderRadius: 'var(--radius-sm)',
                   color: isActive ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                  backgroundColor: isActive ? 'rgba(0, 102, 255, 0.1)' : 'transparent',
-                  transition: 'all 0.2s',
+                  backgroundColor: isActive ? 'var(--bg-panel-hover)' : 'transparent',
+                  border: isActive ? '1px solid var(--border-light)' : '1px solid transparent',
+                  transition: 'all 0.15s',
                   textDecoration: 'none'
                 }}
                 onMouseEnter={(e) => {
-                  if (!isActive) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)';
+                  if (!isActive) e.currentTarget.style.backgroundColor = 'var(--bg-panel-hover)';
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
@@ -101,61 +98,39 @@ export default function AppLayout({ children }) {
         </nav>
 
         {/* Right: Actions & User Profile */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-          <Link to="/demo/interview" style={{ color: 'var(--accent-green)', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 600, padding: '0.4rem 0.8rem', border: '1px solid var(--accent-green)', borderRadius: 'var(--radius-sm)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <Link to="/demo/interview" style={{ color: 'var(--accent-green)', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 600, padding: '0.35rem 0.75rem', border: '1px solid var(--accent-green)', borderRadius: 'var(--radius-sm)', background: 'rgba(15, 157, 88, 0.06)' }}>
             Guided Demo
           </Link>
           
           {/* Theme Toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '4px', borderRadius: '20px', border: '1px solid var(--border-light)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-deep)', padding: '3px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
             <button
-              onClick={() => setThemeName(theme.name === 'Midnight' ? 'Enterprise Navy' : 'Midnight')}
+              onClick={() => {
+                setThemeName(theme.isDark ? 'Light' : 'Dark');
+              }}
+              title={`Theme: ${theme.isDark ? 'Dark' : 'Light'}. Click to toggle.`}
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer',
-                padding: '4px 12px', position: 'relative', outline: 'none'
+                padding: '4px 10px', position: 'relative', outline: 'none'
               }}
             >
-              <AnimatePresence mode="wait">
-                {theme.name === 'Midnight' ? (
-                  <motion.div
-                    key="midnight"
-                    initial={{ opacity: 0, rotate: -90, scale: 0.8 }}
-                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                    exit={{ opacity: 0, rotate: 90, scale: 0.8 }}
-                    transition={{ duration: 0.3 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Moon size={14} color="var(--accent-purple)" />
-                    <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>Cyber</span>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="navy"
-                    initial={{ opacity: 0, rotate: -90, scale: 0.8 }}
-                    animate={{ opacity: 1, rotate: 0, scale: 1 }}
-                    exit={{ opacity: 0, rotate: 90, scale: 0.8 }}
-                    transition={{ duration: 0.3 }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <Sun size={14} color="var(--accent-blue)" />
-                    <span style={{ fontSize: '0.8rem', fontWeight: 500 }}>Executive</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {theme.isDark ? <Moon size={14} color="var(--accent-blue)" /> : <Sun size={14} color="var(--accent-blue)" />}
+              <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>{theme.isDark ? 'Dark' : 'Light'}</span>
             </button>
           </div>
           
           <button style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', position: 'relative' }}>
-            <Bell size={20} />
-            <div style={{ position: 'absolute', top: 0, right: 0, width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-red)' }}></div>
+            <Bell size={18} />
+            <div style={{ position: 'absolute', top: 0, right: 0, width: '7px', height: '7px', borderRadius: '50%', background: 'var(--accent-red)' }}></div>
           </button>
           
-          <div style={{ width: '1px', height: '24px', background: 'var(--border-light)' }}></div>
+          <div style={{ width: '1px', height: '20px', background: 'var(--border-light)' }}></div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent-purple)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <UserIcon size={18} color="#fff" />
+            <div style={{ width: '30px', height: '30px', borderRadius: 'var(--radius-sm)', background: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <UserIcon size={16} color="#fff" />
             </div>
           </div>
         </div>
@@ -163,17 +138,19 @@ export default function AppLayout({ children }) {
 
       {/* 
         =========================================
-        MAIN CONTENT (Unified Spatial Layout)
+        MAIN CONTENT (Clean Modern Layout)
         =========================================
       */}
-      <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
+      <div style={{ position: 'relative', flex: 1, overflow: 'hidden', backgroundColor: 'var(--bg-deep)' }}>
         
-        {/* Full Screen Background: Core Visualization */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          <CoreVisualization />
-        </div>
+        {/* Full Screen Background: Core Visualization only on /spatial */}
+        {location.pathname === '/spatial' && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+            <CoreVisualization />
+          </div>
+        )}
 
-        {/* Foreground Overlay: Interactive Dynamic Content */}
+        {/* Foreground Overlay: High-Productivity Clean Layout */}
         <main style={{ 
           position: 'absolute',
           inset: 0,
@@ -183,19 +160,18 @@ export default function AppLayout({ children }) {
           zIndex: 10,
           pointerEvents: 'auto',
           overflowY: 'auto',
-          padding: '1rem'
+          padding: '1.25rem'
         }}>
           <div style={{ 
-            padding: '1.5rem 2rem',
-            width: '96%',
-            maxWidth: '1480px',
-            height: 'calc(100vh - 6rem)',
+            padding: '1.75rem 2rem',
+            width: '100%',
+            maxWidth: '1500px',
+            height: 'calc(100vh - 5.5rem)',
             pointerEvents: 'auto',
             backgroundColor: 'var(--bg-panel)',
             border: '1px solid var(--border-light)',
-            borderRadius: 'var(--radius-xl)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
-            backdropFilter: 'blur(16px)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-glass)',
             overflowY: 'auto',
             overflowX: 'hidden',
           }}>
@@ -204,10 +180,46 @@ export default function AppLayout({ children }) {
               initial={{ opacity: 0, scale: 0.98, y: 6 }} 
               animate={{ opacity: 1, scale: 1, y: 0 }} 
               transition={{ duration: 0.25 }}
-              style={{ minHeight: '100%' }}
+              style={{ minHeight: 'calc(100% - 50px)', height: '100%', display: 'flex', flexDirection: 'column' }}
             >
               {children}
             </motion.div>
+
+            {/* Enterprise Legal & Compliance Footer */}
+            <footer style={{ 
+              marginTop: '2.5rem', 
+              paddingTop: '1rem', 
+              borderTop: '1px solid var(--border-light)', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              flexWrap: 'wrap', 
+              gap: '1rem', 
+              fontSize: '0.8rem', 
+              color: 'var(--text-muted)' 
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>DocuMatrix AI Enterprise v2.4</span>
+                <span>|</span>
+                <span>SOC2 Type II Certified</span>
+                <span>|</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--accent-green)' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-green)' }} />
+                  Systems Operational (99.99% SLA)
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                <Link to="/privacy-policy" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+                  Privacy Policy
+                </Link>
+                <Link to="/terms-and-conditions" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+                  Terms & Conditions
+                </Link>
+                <Link to="/settings" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>
+                  Custom Domain & DNS
+                </Link>
+              </div>
+            </footer>
           </div>
         </main>
       </div>

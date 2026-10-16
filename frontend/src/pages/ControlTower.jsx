@@ -66,7 +66,7 @@ export default function ControlTower() {
             Operations & SRE
           </div>
           <div style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Activity size={20} color="var(--accent-purple)" /> Control Tower
+            <Activity size={20} color="var(--accent-blue)" /> Control Tower
           </div>
         </div>
 
@@ -85,7 +85,7 @@ export default function ControlTower() {
                 cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left'
               }}
             >
-              <div style={{ color: activeTab === tab.id ? 'var(--accent-purple)' : 'inherit' }}>
+              <div style={{ color: activeTab === tab.id ? 'var(--accent-blue)' : 'inherit' }}>
                 {tab.icon}
               </div>
               {tab.label}

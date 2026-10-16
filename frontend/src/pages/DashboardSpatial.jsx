@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Inbox } from 'lucide-react';
 import UploadZone from '../components/UploadZone';
 
 export default function DashboardSpatial() {
@@ -167,8 +168,8 @@ export default function DashboardSpatial() {
       <div style={{ position: 'absolute', top: '2rem', left: '50%', transform: 'translateX(-50%)', textAlign: 'center', pointerEvents: 'auto', width: '600px' }}>
         <h1 style={{ margin: 0, fontSize: '2.5rem', color: 'var(--text-primary)', textShadow: '0 0 20px rgba(0,0,0,0.8)' }}>Executive Command Center</h1>
         <p style={{ color: 'var(--accent-blue)', margin: '0.5rem 0 1.5rem 0', fontSize: '1.1rem', textShadow: '0 0 10px rgba(0,0,0,0.8)' }}>Real-time spatial intelligence</p>
-        <button className="flex items-center gap-2 px-5 py-2.5 rounded-full backdrop-blur-md transition-all shadow-lg hover:scale-105 mx-auto" onClick={handleLoadDemoData} disabled={isSeeding} style={{ background: 'var(--bg-panel)', border: '1px solid var(--accent-blue)', color: 'var(--text-primary)', boxShadow: '0 0 15px rgba(0, 102, 255, 0.3)' }}>
-          {isSeeding ? "Loading Demo..." : "⚡ Load Demo Scenarios"}
+        <button className="flex items-center gap-2 px-5 py-2.5 rounded-md backdrop-blur-md transition-all shadow-md mx-auto" onClick={handleLoadDemoData} disabled={isSeeding} style={{ background: 'var(--bg-panel)', border: '1px solid var(--accent-blue)', color: 'var(--text-primary)' }}>
+          {isSeeding ? "Loading Demo..." : "Load Demo Scenarios"}
         </button>
       </div>
 
@@ -202,7 +203,7 @@ export default function DashboardSpatial() {
       {/* Right Column */}
       <div style={{ position: 'absolute', top: '50%', right: '3rem', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         {/* Business Impact */}
-        <div style={{ ...panelStyle, borderTop: '4px solid var(--accent-purple)' }}>
+        <div style={{ ...panelStyle, borderTop: '4px solid var(--accent-green)' }}>
           <h3 style={{ color: 'var(--text-muted)', marginBottom: '1rem', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Business Impact</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -215,7 +216,7 @@ export default function DashboardSpatial() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span style={{ color: 'var(--text-secondary)' }}>Review Reduction</span>
-              <span style={{ fontWeight: 'bold', color: 'var(--accent-purple)' }}>{metrics.business_health?.review_reduction}</span>
+              <span style={{ fontWeight: 'bold', color: 'var(--accent-blue)' }}>{metrics.business_health?.review_reduction}</span>
             </div>
           </div>
         </div>
@@ -262,7 +263,7 @@ export default function DashboardSpatial() {
           <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading intelligence data...</div>
         ) : documents.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center' }}>
-            <div style={{ fontSize: '2rem', opacity: 0.5, marginBottom: '0.5rem' }}>📥</div>
+            <Inbox size={32} color="var(--text-muted)" style={{ margin: '0 auto 0.5rem auto', opacity: 0.5 }} />
             <p style={{ color: 'var(--text-muted)' }}>No intelligence data available.</p>
           </div>
         ) : (
@@ -297,8 +298,8 @@ export default function DashboardSpatial() {
                       <PipelineStepper status={doc.status} />
                     </div>
                     <button 
-                      className="flex items-center gap-2 px-5 py-2.5 rounded-full backdrop-blur-md transition-all shadow-lg hover:scale-105" 
-                      style={{ background: 'var(--bg-panel)', border: '1px solid var(--accent-blue)', color: 'var(--text-primary)', boxShadow: '0 0 15px rgba(0, 102, 255, 0.3)', width: '100%', fontSize: '0.8rem', justifyContent: 'center' }} 
+                      className="flex items-center gap-2 px-4 py-2 rounded-md backdrop-blur-md transition-all shadow-sm" 
+                      style={{ background: 'var(--bg-panel)', border: '1px solid var(--accent-blue)', color: 'var(--text-primary)', width: '100%', fontSize: '0.8rem', justifyContent: 'center' }} 
                       onClick={() => navigate(`/review/${doc.id}`)}
                     >
                       Open

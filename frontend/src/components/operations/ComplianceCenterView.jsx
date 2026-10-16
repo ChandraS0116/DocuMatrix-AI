@@ -13,7 +13,7 @@ export default function ComplianceCenterView() {
 
   const [piiData, setPiiData] = useState([
     { name: 'Names', value: 45000, color: 'var(--accent-blue)' },
-    { name: 'Addresses', value: 32000, color: 'var(--accent-purple)' },
+    { name: 'Addresses', value: 32000, color: 'var(--accent-blue)' },
     { name: 'SSNs', value: 8500, color: 'var(--accent-red)' },
     { name: 'Financial', value: 12400, color: 'var(--accent-yellow)' },
   ]);
@@ -37,7 +37,7 @@ export default function ComplianceCenterView() {
             })));
           }
           if (data.pii_breakdown) {
-            const colors = ['var(--accent-blue)', 'var(--accent-purple)', 'var(--accent-red)', 'var(--accent-yellow)'];
+            const colors = ['var(--accent-blue)', 'var(--accent-blue)', 'var(--accent-red)', 'var(--accent-yellow)'];
             setPiiData(data.pii_breakdown.map((item, idx) => ({
               name: item.name,
               value: item.value,
@@ -99,7 +99,7 @@ export default function ComplianceCenterView() {
         {/* PII Inventory */}
         <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Lock size={16} color="var(--accent-purple)" /> Detected PII Inventory
+            <Lock size={16} color="var(--accent-blue)" /> Detected PII Inventory
           </h3>
           <div style={{ display: 'flex', flex: 1, alignItems: 'center' }}>
             <div style={{ width: '200px', height: '200px' }}>

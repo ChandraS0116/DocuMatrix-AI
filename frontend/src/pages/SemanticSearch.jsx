@@ -38,7 +38,8 @@ export default function SemanticSearch() {
         const data = await res.json();
         setResult(data);
       } else {
-        setErrorMsg('Search failed. Make sure documents are uploaded and indexed.');
+        const errData = await res.json().catch(() => ({}));
+        setErrorMsg(errData.detail || 'Search failed. Make sure documents are uploaded and indexed.');
       }
     } catch (err) {
       console.error("Search error:", err);
@@ -60,8 +61,8 @@ export default function SemanticSearch() {
       
       {/* Hero Header */}
       <div style={{ textAlign: 'center', paddingTop: '1rem' }}>
-        <div style={{ display: 'inline-flex', padding: '0.75rem', borderRadius: '50%', background: 'rgba(121, 40, 202, 0.15)', marginBottom: '1rem' }}>
-          <Sparkles size={36} color="var(--accent-purple)" />
+        <div style={{ display: 'inline-flex', padding: '0.75rem', borderRadius: 'var(--radius-md)', background: 'var(--bg-panel-hover)', border: '1px solid var(--border-light)', marginBottom: '1rem' }}>
+          <Sparkles size={36} color="var(--accent-blue)" />
         </div>
         <h1 style={{ fontSize: '2.2rem', margin: 0, fontWeight: 700 }}>DocuMatrix Semantic AI & RAG</h1>
         <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem', fontSize: '1.05rem' }}>
@@ -81,10 +82,10 @@ export default function SemanticSearch() {
               padding: '1.25rem 2rem 1.25rem 3.25rem', 
               paddingRight: '130px', 
               fontSize: '1.1rem', 
-              borderRadius: 'var(--radius-xl)',
+              borderRadius: 'var(--radius-md)',
               background: 'var(--bg-panel)',
               border: '1px solid var(--border-light)',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+              boxShadow: 'var(--shadow-glass)',
               color: 'var(--text-primary)'
             }}
             placeholder="Ask anything (e.g. What are the key contract liabilities and totals?)"
@@ -100,7 +101,7 @@ export default function SemanticSearch() {
               right: '8px', 
               top: '8px', 
               bottom: '8px', 
-              borderRadius: 'var(--radius-lg)',
+              borderRadius: 'var(--radius-sm)',
               padding: '0 1.5rem',
               display: 'flex',
               alignItems: 'center',
@@ -125,13 +126,13 @@ export default function SemanticSearch() {
               border: '1px solid var(--border-light)',
               color: 'var(--text-secondary)',
               padding: '0.35rem 0.75rem',
-              borderRadius: '20px',
+              borderRadius: 'var(--radius-sm)',
               fontSize: '0.8rem',
               cursor: 'pointer',
               transition: 'all 0.2s',
               textAlign: 'left'
             }}
-            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-purple)'}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-blue)'}
             onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-light)'}
           >
             {sq}
@@ -150,7 +151,7 @@ export default function SemanticSearch() {
       {/* Searching Spinner */}
       {isSearching && (
         <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--accent-purple)', animation: 'spin 1s linear infinite', margin: '0 auto 1.5rem auto' }}></div>
+          <div style={{ width: '44px', height: '44px', borderRadius: '50%', border: '3px solid var(--border-light)', borderTopColor: 'var(--accent-blue)', animation: 'spin 1s linear infinite', margin: '0 auto 1.5rem auto' }}></div>
           <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
           <div style={{ fontSize: '1rem', color: 'var(--text-primary)', fontWeight: 500 }}>Vectorizing query & querying Elasticsearch chunks...</div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.5rem 0 0 0' }}>Cosine similarity matching with dense 3072D embeddings</p>
@@ -162,9 +163,9 @@ export default function SemanticSearch() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
           {/* Answer Card */}
-          <div className="glass-panel" style={{ padding: '2rem', borderLeft: '4px solid var(--accent-purple)', position: 'relative' }}>
+          <div className="glass-panel" style={{ padding: '2rem', borderLeft: '4px solid var(--accent-blue)', position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-purple)', margin: 0, fontSize: '1.2rem' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent-blue)', margin: 0, fontSize: '1.2rem' }}>
                 <Sparkles size={20} /> Synthesized Intelligence Answer
               </h3>
               <button 
@@ -203,14 +204,14 @@ export default function SemanticSearch() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {result.citations.map((cite, idx) => (
                   <div key={idx} className="glass-panel" style={{ padding: '1.25rem 1.5rem', display: 'flex', gap: '1.25rem', alignItems: 'flex-start' }}>
-                    <div style={{ background: 'rgba(0, 229, 255, 0.1)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: 'var(--accent-blue)', flexShrink: 0 }}>
+                    <div style={{ background: 'var(--bg-deep)', border: '1px solid var(--border-light)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: 'var(--accent-blue)', flexShrink: 0 }}>
                       <FileText size={22} />
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                         <span className="badge" style={{ background: 'var(--bg-deep)' }}>Page {cite.page_number || 1}</span>
                         <span className="badge" style={{ background: 'var(--bg-deep)', textTransform: 'capitalize' }}>{cite.source_type || 'Document'}</span>
-                        <span className="badge" style={{ background: 'rgba(0, 229, 255, 0.1)', color: 'var(--accent-blue)' }}>
+                        <span className="badge" style={{ background: 'var(--bg-deep)', border: '1px solid var(--border-light)', color: 'var(--accent-blue)' }}>
                           {cite.relevance_score ? `${Math.round(cite.relevance_score * 100)}% Match` : '98% Match'}
                         </span>
                         <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>Doc: {cite.document_id}</span>

@@ -79,7 +79,7 @@ export default function ModelGovernanceView() {
                 className="glass-panel" 
                 style={{ 
                   padding: '1rem', cursor: 'pointer', 
-                  border: selectedModel === m.id ? '1px solid var(--accent-purple)' : '1px solid var(--border-light)',
+                  border: selectedModel === m.id ? '1px solid var(--accent-blue)' : '1px solid var(--border-light)',
                   background: selectedModel === m.id ? 'var(--bg-deep)' : 'var(--bg-panel)'
                 }}
               >
@@ -104,7 +104,7 @@ export default function ModelGovernanceView() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                <div style={{ padding: '0.5rem', background: 'rgba(187,134,252,0.1)', borderRadius: '8px', color: 'var(--accent-purple)' }}>
+                <div style={{ padding: '0.5rem', background: 'rgba(0,102,255,0.1)', borderRadius: '8px', color: 'var(--accent-blue)' }}>
                   <Cpu size={24} />
                 </div>
                 <h3 style={{ fontSize: '1.5rem' }}>Invoice Extractor</h3>
@@ -150,7 +150,7 @@ export default function ModelGovernanceView() {
                 <RechartsTooltip contentStyle={{background: 'var(--bg-deep)', border: '1px solid var(--border-light)'}} itemStyle={{color: 'var(--text-primary)'}} />
                 <Legend />
                 <Line yAxisId="left" type="monotone" dataKey="precision" stroke="var(--accent-blue)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                <Line yAxisId="left" type="monotone" dataKey="recall" stroke="var(--accent-purple)" strokeWidth={2} dot={{ r: 4 }} />
+                <Line yAxisId="left" type="monotone" dataKey="recall" stroke="var(--accent-blue)" strokeWidth={2} dot={{ r: 4 }} />
                 <Line yAxisId="right" type="step" dataKey="drift" stroke="var(--accent-yellow)" strokeWidth={2} strokeDasharray="5 5" dot={false} />
               </LineChart>
             </ResponsiveContainer>

@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Network, Search, Database, FileText, Briefcase, Zap, Cpu, RefreshCw, ZoomIn, ZoomOut, Filter, Info } from 'lucide-react';
+import { useTheme } from '../design/ThemeProvider';
 
 const INITIAL_NODES = [
-  { id: 'Apex Global Industries', type: 'company', group: 1, x: 400, y: 250, radius: 28, color: '#00e5ff', vx: 0, vy: 0 },
-  { id: 'Global Logistics Ltd', type: 'vendor', group: 2, x: 260, y: 160, radius: 22, color: '#7928ca', vx: 0, vy: 0 },
-  { id: 'Acme Industrial Corp', type: 'vendor', group: 2, x: 550, y: 170, radius: 22, color: '#7928ca', vx: 0, vy: 0 },
-  { id: 'Northwind Health Inc', type: 'client', group: 2, x: 320, y: 380, radius: 22, color: '#00df8f', vx: 0, vy: 0 },
-  { id: 'Invoice: INV-1004 ($45,230)', type: 'invoice', group: 3, x: 650, y: 260, radius: 18, color: '#ff007a', vx: 0, vy: 0 },
-  { id: 'Invoice: INV-1005 ($12,400)', type: 'invoice', group: 3, x: 600, y: 90, radius: 18, color: '#ff007a', vx: 0, vy: 0 },
-  { id: 'Contract: MSA-2026-v2', type: 'contract', group: 4, x: 160, y: 110, radius: 20, color: '#ffbe0b', vx: 0, vy: 0 },
-  { id: 'HIPAA Compliance Audit 2026', type: 'compliance', group: 4, x: 200, y: 440, radius: 20, color: '#ffbe0b', vx: 0, vy: 0 },
-  { id: 'Stripe Settlement #9021', type: 'payment', group: 5, x: 740, y: 350, radius: 16, color: '#3a86ff', vx: 0, vy: 0 }
+  { id: 'Apex Global Industries', type: 'company', group: 1, x: 400, y: 250, radius: 28, color: '#065fd4', vx: 0, vy: 0 },
+  { id: 'Global Logistics Ltd', type: 'vendor', group: 2, x: 260, y: 160, radius: 22, color: '#0284c7', vx: 0, vy: 0 },
+  { id: 'Acme Industrial Corp', type: 'vendor', group: 2, x: 550, y: 170, radius: 22, color: '#0284c7', vx: 0, vy: 0 },
+  { id: 'Northwind Health Inc', type: 'client', group: 2, x: 320, y: 380, radius: 22, color: '#059669', vx: 0, vy: 0 },
+  { id: 'Invoice: INV-1004 ($45,230)', type: 'invoice', group: 3, x: 650, y: 260, radius: 18, color: '#d97706', vx: 0, vy: 0 },
+  { id: 'Invoice: INV-1005 ($12,400)', type: 'invoice', group: 3, x: 600, y: 90, radius: 18, color: '#d97706', vx: 0, vy: 0 },
+  { id: 'Contract: MSA-2026-v2', type: 'contract', group: 4, x: 160, y: 110, radius: 20, color: '#475569', vx: 0, vy: 0 },
+  { id: 'HIPAA Compliance Audit 2026', type: 'compliance', group: 4, x: 200, y: 440, radius: 20, color: '#475569', vx: 0, vy: 0 },
+  { id: 'Stripe Settlement #9021', type: 'payment', group: 5, x: 740, y: 350, radius: 16, color: '#2563eb', vx: 0, vy: 0 }
 ];
 
 const INITIAL_LINKS = [
@@ -26,6 +27,8 @@ const INITIAL_LINKS = [
 
 export default function KnowledgeGraph() {
   const canvasRef = useRef(null);
+  const { currentTheme } = useTheme();
+  const isDark = Boolean(currentTheme?.isDark);
   const [nodes, setNodes] = useState(INITIAL_NODES);
   const [links] = useState(INITIAL_LINKS);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -83,8 +86,8 @@ export default function KnowledgeGraph() {
         const t = nodes.find(n => n.id === l.target);
         if (s && t) {
           ctx.strokeStyle = selectedNode && (selectedNode.id === s.id || selectedNode.id === t.id) 
-            ? 'rgba(0, 229, 255, 0.8)' 
-            : 'rgba(255, 255, 255, 0.12)';
+            ? (isDark ? '#38bdf8' : '#065fd4') 
+            : (isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)');
           ctx.beginPath();
           ctx.moveTo(s.x, s.y);
           ctx.lineTo(t.x, t.y);
@@ -94,7 +97,7 @@ export default function KnowledgeGraph() {
           const mx = (s.x + t.x) / 2;
           const my = (s.y + t.y) / 2;
           ctx.font = '10px Inter, sans-serif';
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.fillStyle = isDark ? 'rgba(255, 255, 255, 0.5)' : '#606060';
           ctx.fillText(l.label, mx + 4, my - 4);
         }
       });
@@ -120,7 +123,7 @@ export default function KnowledgeGraph() {
         ctx.shadowColor = n.color;
         ctx.shadowBlur = selectedNode?.id === n.id ? 25 : 8;
         ctx.fill();
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = isDark ? '#ffffff' : '#f0f0f0';
         ctx.lineWidth = selectedNode?.id === n.id ? 3 : 1;
         ctx.stroke();
         ctx.restore();
@@ -128,8 +131,8 @@ export default function KnowledgeGraph() {
         // Node title
         ctx.save();
         ctx.globalAlpha = opacity;
-        ctx.font = '11px Inter, sans-serif';
-        ctx.fillStyle = '#ffffff';
+        ctx.font = '600 11px Inter, sans-serif';
+        ctx.fillStyle = isDark ? '#ffffff' : '#0f0f0f';
         ctx.textAlign = 'center';
         ctx.fillText(n.id, n.x, n.y + n.radius + 16);
         ctx.restore();
@@ -142,7 +145,7 @@ export default function KnowledgeGraph() {
 
     tick();
     return () => cancelAnimationFrame(animId);
-  }, [nodes, links, selectedNode, searchQuery, filterType, isSimulating]);
+  }, [nodes, links, selectedNode, searchQuery, filterType, isSimulating, isDark]);
 
   const handleCanvasClick = (e) => {
     const canvas = canvasRef.current;
@@ -227,7 +230,7 @@ export default function KnowledgeGraph() {
       </div>
 
       {/* Main Canvas & Detail Drawer */}
-      <div style={{ flex: 1, position: 'relative', background: '#07070c', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden' }}>
+      <div style={{ flex: 1, position: 'relative', background: 'var(--bg-deep)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)', overflow: 'hidden' }}>
         <canvas
           ref={canvasRef}
           width={1200}

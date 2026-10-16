@@ -9,12 +9,20 @@ export const useDesignSystem = () => {
   return context;
 };
 
+export const useTheme = useDesignSystem;
+
 export function DesignProvider({ children }) {
-  // Load preferences from localStorage or use defaults
-  const [themeName, setThemeName] = useState(() => localStorage.getItem('theme') || 'Midnight');
+  // Load preferences from localStorage or default to Light theme
+  const [themeName, setThemeName] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (!saved || saved === 'Midnight' || saved === 'YouTube White' || saved === 'Instagram Clean') {
+      return 'Light';
+    }
+    return saved;
+  });
   const [density, setDensity] = useState(() => localStorage.getItem('density') || 'Comfortable');
   const [typography, setTypography] = useState(() => localStorage.getItem('typography') || 'Inter');
-  const [motionLevel, setMotionLevel] = useState(() => localStorage.getItem('motion') || 'Premium');
+  const [motionLevel, setMotionLevel] = useState(() => localStorage.getItem('motion') || 'Reduced');
 
   const currentTheme = getThemeByName(themeName);
 
@@ -34,10 +42,10 @@ export function DesignProvider({ children }) {
     if (density === 'Spacious') { spacingMultiplier = 1.25; radiusScale = 1.25; }
 
     root.style.setProperty('--spacing-scale', spacingMultiplier);
-    root.style.setProperty('--radius-sm', `${6 * radiusScale}px`);
-    root.style.setProperty('--radius-md', `${12 * radiusScale}px`);
-    root.style.setProperty('--radius-lg', `${20 * radiusScale}px`);
-    root.style.setProperty('--radius-xl', `${32 * radiusScale}px`);
+    root.style.setProperty('--radius-sm', `${4 * radiusScale}px`);
+    root.style.setProperty('--radius-md', `${8 * radiusScale}px`);
+    root.style.setProperty('--radius-lg', `${12 * radiusScale}px`);
+    root.style.setProperty('--radius-xl', `${16 * radiusScale}px`);
 
     // Apply Typography
     root.style.setProperty('--font-sans', `'${typography}', sans-serif`);

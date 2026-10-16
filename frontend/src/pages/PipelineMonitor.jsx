@@ -70,7 +70,7 @@ export default function PipelineMonitor() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
         <KpiCard title="Processing Rate" value="124 docs/min" subtext="↑ 12% vs last hour" icon={<Activity />} color="var(--accent-blue)" />
         <KpiCard title="Avg Latency" value="1.8s" subtext="SLA limit: 3.0s" icon={<Clock />} color="var(--accent-green)" />
-        <KpiCard title="Active Workers" value="48 / 50" subtext="96% Utilization" icon={<Server />} color="var(--accent-purple)" />
+        <KpiCard title="Active Workers" value="48 / 50" subtext="96% Utilization" icon={<Server />} color="var(--accent-blue)" />
         <KpiCard title="Failure Rate" value="0.4%" subtext="4 failed in last hour" icon={<AlertTriangle />} color="var(--accent-yellow)" />
       </div>
 
@@ -135,14 +135,14 @@ export default function PipelineMonitor() {
         {/* Resource Telemetry */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Cpu size={18} color="var(--accent-purple)"/> Resource Usage</h3>
+            <h3 style={{ fontSize: '1rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Cpu size={18} color="var(--accent-blue)"/> Resource Usage</h3>
             <div style={{ marginBottom: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>GPU Utilization (A100)</span>
                 <span style={{ fontWeight: 600 }}>82%</span>
               </div>
               <div style={{ width: '100%', height: '6px', background: 'var(--bg-deep)', borderRadius: '3px' }}>
-                <div style={{ width: '82%', height: '100%', background: 'var(--accent-purple)', borderRadius: '3px' }}></div>
+                <div style={{ width: '82%', height: '100%', background: 'var(--accent-blue)', borderRadius: '3px' }}></div>
               </div>
             </div>
             <div style={{ marginBottom: '1rem' }}>

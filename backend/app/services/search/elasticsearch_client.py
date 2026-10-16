@@ -21,13 +21,16 @@ class ESClient:
         self._initialized = True
         if Elasticsearch:
             try:
-                self.client = Elasticsearch(self.url, retry_on_timeout=True, max_retries=3)
-                self._ensure_index()
-            except Exception as e:
-                logger.error(f"Elasticsearch connection failed on lazy init: {e}")
+                test_client = Elasticsearch(self.url, request_timeout=0.3, max_retries=0)
+                if test_client.ping():
+                    self.client = test_client
+                    self._ensure_index()
+                else:
+                    self.client = None
+            except Exception:
                 self.client = None
         else:
-            logger.warning("Elasticsearch Python client not installed.")
+            self.client = None
 
     def _ensure_index(self):
         if not self.client: return

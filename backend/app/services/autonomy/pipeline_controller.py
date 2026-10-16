@@ -3,9 +3,8 @@ from app.models.database import PipelineDecision
 from sqlalchemy.orm import Session
 import uuid
 import logging
-import random
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Dict, Any, List
 
 logger = logging.getLogger(__name__)
@@ -26,9 +25,20 @@ class PipelineAction(str, Enum):
 from app.services.autonomy.rl.state_encoder import state_encoder
 from app.services.autonomy.rl.policy_shield import policy_shield
 
-class Provenance(BaseModel):
-    signal_snapshot_id: str
-    model_version: str
+class Provenance(dict):
+    def __init__(self, signal_snapshot_id: str = "current", model_version: str = "policy_v1", **kwargs):
+        super().__init__(signal_snapshot_id=signal_snapshot_id, model_version=model_version, **kwargs)
+        self["signal_snapshot_id"] = signal_snapshot_id
+        self["model_version"] = model_version
+
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name)
+
+    def __setattr__(self, name, value):
+        self[name] = value
 
 class RetryPolicy(BaseModel):
     max_retries: int = 3
@@ -39,11 +49,12 @@ class ExecutionConstraints(BaseModel):
     requires_gpu: bool = False
 
 class StructuredPipelineDecision(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     action: PipelineAction
     parameters: Dict[str, Any] = Field(default_factory=dict)
     retry_policy: RetryPolicy = Field(default_factory=RetryPolicy)
     execution_constraints: ExecutionConstraints = Field(default_factory=ExecutionConstraints)
-    provenance: Provenance
+    provenance: Any = Field(default_factory=Provenance)
 
 class PolicyModel:
     def __init__(self):

@@ -9,7 +9,10 @@ from typing import List, Optional
 try:
     import jwt
 except ImportError:
-    jwt = None
+    try:
+        from jose import jwt
+    except ImportError:
+        jwt = None
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +40,14 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     Validates JWT token and extracts tenant_id and roles.
     In development environments, permits a controlled dev_user fallback.
     """
-    if not token:
-        dev_mode = os.getenv("DOCINTEL_MODE", "DEV").upper() in ["DEV", "DEVELOPMENT"] or os.getenv("ALLOW_DEV_AUTH", "true").lower() == "true"
+    is_empty_token = (
+        not token 
+        or not isinstance(token, str) 
+        or token.strip().lower() in ["", "null", "undefined", "bearer", "none"]
+    )
+    dev_mode = os.getenv("DOCINTEL_MODE", "DEV").upper() in ["DEV", "DEVELOPMENT"] or os.getenv("ALLOW_DEV_AUTH", "true").lower() == "true"
+
+    if is_empty_token:
         if dev_mode:
             return User(username="dev_user", tenant_id="default", roles=["TENANT_ADMIN", "OPERATOR", "VIEWER"])
         raise HTTPException(
@@ -48,6 +57,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         )
         
     if not jwt:
+        if dev_mode:
+            return User(username="dev_user", tenant_id="default", roles=["TENANT_ADMIN", "OPERATOR", "VIEWER"])
         logger.error("JWT validation attempted but PyJWT library is missing.")
         raise HTTPException(status_code=500, detail="JWT module not available on server")
 
@@ -58,10 +69,15 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         roles: List[str] = payload.get("roles", ["VIEWER"])
         
         if username is None:
+            if dev_mode:
+                return User(username="dev_user", tenant_id="default", roles=["TENANT_ADMIN", "OPERATOR", "VIEWER"])
             raise HTTPException(status_code=401, detail="Invalid authentication token payload")
             
         return User(username=username, tenant_id=tenant_id, roles=roles)
-    except jwt.PyJWTError as e:
+    except Exception as e:
+        if dev_mode:
+            logger.info(f"Dev auth fallback for token ({e})")
+            return User(username="dev_user", tenant_id="default", roles=["TENANT_ADMIN", "OPERATOR", "VIEWER"])
         logger.warning(f"JWT verification failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -75,6 +91,6 @@ def verify_token(token: str) -> dict:
         raise HTTPException(status_code=500, detail="PyJWT is not installed on server.")
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-    except jwt.PyJWTError as e:
+    except Exception as e:
         raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
 

@@ -70,7 +70,7 @@ export default function BillingDashboard({ tenantId = "default" }) {
       {/* Header */}
       <div style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '1rem' }}>
         <h1 style={{ fontSize: '1.8rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <CreditCard color="var(--accent-purple)" size={28} /> Subscription & Resource Usage
+          <CreditCard color="var(--accent-blue)" size={28} /> Subscription & Resource Usage
         </h1>
         <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.9rem' }}>
           Real-time billing telemetry, Stripe usage-based metering, and tenant compute allocations.
@@ -116,13 +116,13 @@ export default function BillingDashboard({ tenantId = "default" }) {
         </div>
 
         {/* Quota Limits */}
-        <div className="glass-panel" style={{ padding: '1.5rem', borderTop: '3px solid var(--accent-purple)' }}>
+        <div className="glass-panel" style={{ padding: '1.5rem', borderTop: '3px solid var(--accent-blue)' }}>
           <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>Monthly Ingestion Quota</div>
           <div style={{ fontSize: '1.8rem', fontWeight: 700, margin: '0.5rem 0', color: 'var(--text-primary)' }}>
             142 <span style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>/ 50,000 docs</span>
           </div>
           <div style={{ width: '100%', height: '6px', background: 'var(--bg-deep)', borderRadius: '3px', marginTop: '0.5rem' }}>
-            <div style={{ width: '2%', height: '100%', background: 'var(--accent-purple)', borderRadius: '3px' }} />
+            <div style={{ width: '2%', height: '100%', background: 'var(--accent-blue)', borderRadius: '3px' }} />
           </div>
         </div>
 

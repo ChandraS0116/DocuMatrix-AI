@@ -108,7 +108,7 @@ export default function InterviewMode() {
       <div className="flex-between" style={{ marginBottom: '2rem' }}>
         <div>
           <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, fontSize: '1.8rem' }}>
-            <MonitorPlay color="var(--accent-purple)" /> Guided Demo Presenter
+            <MonitorPlay color="var(--accent-blue)" /> Guided Demo Presenter
           </h1>
           <p style={{ color: 'var(--text-muted)', marginTop: '0.5rem' }}>Step {step + 1} of {steps.length} • {steps[step].title}</p>
         </div>
@@ -129,7 +129,7 @@ export default function InterviewMode() {
             onClick={() => setViewMode('technical')}
             style={{ 
               display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', border: 'none', borderRadius: '4px', cursor: 'pointer',
-              background: viewMode === 'technical' ? 'var(--accent-purple)' : 'transparent',
+              background: viewMode === 'technical' ? 'var(--accent-blue)' : 'transparent',
               color: viewMode === 'technical' ? '#fff' : 'var(--text-muted)'
             }}
           >
@@ -143,7 +143,7 @@ export default function InterviewMode() {
         {steps.map((_, idx) => (
           <div key={idx} style={{ 
             flex: 1, height: '6px', borderRadius: '3px', cursor: 'pointer',
-            background: idx < step ? 'var(--accent-purple)' : idx === step ? 'var(--accent-blue)' : 'var(--border-light)',
+            background: idx < step ? 'var(--accent-blue)' : idx === step ? 'var(--accent-blue)' : 'var(--border-light)',
             transition: 'background 0.3s ease'
           }} onClick={() => setStep(idx)} />
         ))}
@@ -162,7 +162,7 @@ export default function InterviewMode() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <div style={{ display: 'inline-block', padding: '0.25rem 0.75rem', background: viewMode === 'executive' ? 'rgba(0, 229, 255, 0.1)' : 'rgba(157, 78, 221, 0.1)', color: viewMode === 'executive' ? 'var(--accent-blue)' : 'var(--accent-purple)', borderRadius: '16px', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'inline-block', padding: '0.25rem 0.75rem', background: 'var(--bg-deep)', border: '1px solid var(--border-light)', color: 'var(--accent-blue)', borderRadius: 'var(--radius-sm)', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1.5rem' }}>
                 {viewMode} Annotation
               </div>
               
@@ -174,7 +174,7 @@ export default function InterviewMode() {
               
               {/* Highlight Box for Technical View */}
               {viewMode === 'technical' && steps[step].action && (
-                <div style={{ marginTop: '2rem', padding: '1rem', background: 'var(--bg-deep)', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--accent-purple)', fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                <div style={{ marginTop: '2rem', padding: '1rem', background: 'var(--bg-deep)', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--accent-blue)', fontFamily: 'monospace', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                   Action: navigate("{steps[step].action.path}")
                 </div>
               )}

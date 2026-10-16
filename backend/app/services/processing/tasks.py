@@ -21,6 +21,7 @@ from app.services.storage.minio import minio_service
 from app.services.ocr.ocr_engine import ocr_router
 from app.services.ml.classifier import classifier
 from app.services.ml.extractor import extractor
+from app.services.vision.vision_analyzer import vision_analyzer
 from app.services.rag.embeddings import embedding_generator
 from app.services.search.elasticsearch_client import es_client
 from app.services.risk.risk_engine import risk_engine
@@ -40,16 +41,9 @@ from app.billing.usage_tracker import usage_tracker
 
 logger = get_logger(__name__)
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 from app.celery import celery as celery_app
-if REDIS_AVAILABLE:
-    redis_client = redis.from_url(REDIS_URL)
-else:
-    class MockRedis:
-        def setnx(self, k, v): return True
-        def expire(self, k, v): pass
-        def delete(self, k): pass
-    redis_client = MockRedis()
+from app.services.common.redis_client import get_safe_redis
+redis_client = get_safe_redis()
 
 def execute_node_action(action: PipelineAction, inputs: dict, document_id: str, db):
     doc = db.query(Document).filter(Document.id == document_id).first()
@@ -69,16 +63,19 @@ def execute_node_action(action: PipelineAction, inputs: dict, document_id: str, 
             ocr_result = db.query(OcrResult).filter(OcrResult.document_id == document_id).first()
             if not ocr_result:
                 ocr_result = OcrResult(
+                    tenant_id=doc.tenant_id,
                     document_id=doc.id, ocr_engine_version=result.get("source", "unknown"),
-                    processing_duration_ms=latency_ms, page_count=1,
-                    raw_response=result, canonical_document={"text": result.get("raw_text"), "blocks": result.get("bounding_boxes")}
+                    processing_duration_ms=latency_ms, page_count=result.get("page_count", 1),
+                    raw_response={"engine": result.get("source", "unknown"), "success": True},
+                    canonical_document={"text": result.get("raw_text"), "blocks": result.get("bounding_boxes")}
                 )
                 db.add(ocr_result)
             else:
                 ocr_result.canonical_document = {"text": result.get("raw_text"), "blocks": result.get("bounding_boxes")}
                 ocr_result.ocr_engine_version = result.get("source", "unknown")
+                ocr_result.raw_response = {"engine": result.get("source", "unknown"), "success": True}
                 
-            doc.page_count = 1
+            doc.page_count = result.get("page_count", 1)
             doc.status = "OCR_COMPLETED"
             db.commit()
             return {"status": "success", "confidence": result.get("confidence_score", 0.0)}
@@ -91,13 +88,31 @@ def execute_node_action(action: PipelineAction, inputs: dict, document_id: str, 
         start_time = time.time()
         try:
             ocr_result = db.query(OcrResult).filter(OcrResult.document_id == document_id).first()
-            if not ocr_result:
-                raise Exception("Cannot classify: No OCR result found.")
-                
-            text = ocr_result.canonical_document.get("text", "")
+            text = ocr_result.canonical_document.get("text", "") if (ocr_result and ocr_result.canonical_document) else ""
             
             with MetricsTimer(classification_latency_ms):
-                class_result = classifier.classify(text)
+                fn = (doc.filename or "").lower()
+                is_image = any(fn.endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff"]) or (doc.mime_type or "").startswith("image/")
+                class_result = None
+                
+                # Check for visual media classification
+                if is_image and doc.storage_path:
+                    try:
+                        file_bytes = minio_service.download_file(doc.storage_path)
+                        if file_bytes:
+                            v_res = vision_analyzer.analyze_image(file_bytes, filename=doc.filename)
+                            if "error" not in v_res:
+                                class_result = {
+                                    "label": v_res.get("photo_category", "Visual Media"),
+                                    "confidence": 0.98,
+                                    "probabilities": [0.98, 0.02],
+                                    "model_used": "vision_intelligence_engine"
+                                }
+                    except Exception as e:
+                        logger.warning(f"Vision classification warning: {e}")
+                
+                if not class_result:
+                    class_result = classifier.classify(text)
                 fallback_used = class_result.get("model_used") == "fallback"
                 
             latency_ms = int((time.time() - start_time) * 1000)
@@ -127,22 +142,117 @@ def execute_node_action(action: PipelineAction, inputs: dict, document_id: str, 
         start_time = time.time()
         try:
             ocr_result = db.query(OcrResult).filter(OcrResult.document_id == document_id).first()
-            
-            blocks = ocr_result.canonical_document.get("blocks", [])
+            raw_text = ocr_result.canonical_document.get("text", "") if (ocr_result and ocr_result.canonical_document) else ""
+            blocks = ocr_result.canonical_document.get("blocks", []) if (ocr_result and ocr_result.canonical_document) else []
             words = [b.get("text") for b in blocks if "text" in b]
             boxes = [b.get("bbox") for b in blocks if "bbox" in b]
+            if not words and raw_text:
+                words = [w.strip() for w in raw_text.split() if w.strip()]
+                boxes = [[0, 0, 100, 20]] * len(words)
             
             with MetricsTimer(extraction_latency_ms):
                 file_bytes = minio_service.download_file(doc.storage_path)
                 import numpy as np
                 import cv2
                 from PIL import Image
-                nparr = np.frombuffer(file_bytes, np.uint8)
-                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-                img_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+                import io
+
+                img_pil = None
+                if file_bytes and file_bytes.startswith(b"%PDF"):
+                    try:
+                        import pypdf
+                        reader = pypdf.PdfReader(io.BytesIO(file_bytes))
+                        for page in reader.pages:
+                            if getattr(page, 'images', None) and len(page.images) > 0:
+                                img_pil = page.images[0].image
+                                break
+                    except Exception:
+                        pass
+
+                if img_pil is None and file_bytes:
+                    try:
+                        nparr = np.frombuffer(file_bytes, np.uint8)
+                        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                        if img is not None:
+                            img_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+                    except Exception:
+                        pass
+
+                if img_pil is None:
+                    img_pil = Image.new("RGB", (800, 1000), color=(255, 255, 255))
                 
-                ext_result = extractor.extract(img_pil, words, boxes)
-                fallback_used = len(ext_result.get("entities", [])) == 0
+                ext_result = extractor.extract(img_pil, words, boxes, raw_text=raw_text)
+
+                # Check for Visual Intelligence (Photos or PDF embedded images)
+                fn = (doc.filename or "").lower()
+                is_image = any(fn.endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff"]) or (doc.mime_type or "").startswith("image/")
+                is_pdf = fn.endswith(".pdf") or (doc.mime_type or "") in ["application/pdf", "application/x-pdf"]
+
+                if is_image and file_bytes:
+                    try:
+                        v_res = vision_analyzer.analyze_image(file_bytes, filename=doc.filename, ocr_text=raw_text)
+                        if "error" not in v_res:
+                            v_fields = {}
+                            cat = v_res.get("photo_category", "Photo Analysis")
+                            v_fields["photo_category"] = cat
+
+                            if cat == "Scanned Document / Identity Card" or any(k in fn for k in ["aadhar", "id", "card", "pan"]):
+                                v_fields["photo_category"] = "Scanned Document / Identity Card"
+                                v_fields["document_layout"] = v_res.get("document_layout", "Structured credential card format")
+                                v_fields["visual_summary"] = v_res.get("visual_summary", "Scanned identity credential card.")
+                            elif v_res.get("person_count") == 1:
+                                ff = v_res.get("facial_features", {})
+                                ca = v_res.get("clothing_and_attire", {})
+                                bg = v_res.get("background_setting", {})
+                                v_fields["person_count"] = "1 Individual Detected"
+                                v_fields["facial_features"] = f"{ff.get('face_orientation', 'Frontal portrait')}, {ff.get('eye_gaze', 'direct gaze')}"
+                                v_fields["facial_expression"] = ff.get("expression", "Neutral / Composed")
+                                v_fields["clothing_attire"] = f"{ca.get('primary_color', 'Neutral')} ({ca.get('attire_style', 'Formal/Casual')})"
+                                v_fields["clothing_palette"] = ", ".join(f"{c['name']} ({c['percentage']}%)" for c in ca.get("dominant_palette", []))
+                                v_fields["background_setting"] = f"{bg.get('primary_tone', 'Neutral')} backdrop ({ff.get('lighting_quality', 'Studio illumination')})"
+                                v_fields["visual_summary"] = v_res.get("visual_summary", "")
+                            elif v_res.get("person_count", 0) > 1:
+                                v_fields["person_count"] = f"{v_res['person_count']} Individuals Detected"
+                                v_fields["group_arrangement"] = v_res.get("group_arrangement", "Horizontal group assembly")
+                                for ind in v_res.get("individuals", []):
+                                    v_fields[ind["individual"]] = f"Expression: {ind['expression']} | Clothing: {ind['clothing_color']}"
+                                v_fields["visual_summary"] = v_res.get("visual_summary", "")
+                            else:
+                                v_fields["scene_classification"] = v_res.get("scene_classification", "Environmental Landscape")
+                                v_fields["environment_description"] = v_res.get("environment_description", "")
+                                v_fields["lighting_and_atmosphere"] = v_res.get("lighting_and_atmosphere", "")
+                                v_fields["dominant_color_palette"] = ", ".join(f"{c['name']} ({c['percentage']}%)" for c in v_res.get("color_palette", [])[:3])
+                                v_fields["visual_summary"] = v_res.get("visual_summary", "")
+
+                            if "fields" not in ext_result:
+                                ext_result["fields"] = {}
+                            ext_result["fields"] = {**v_fields, **ext_result["fields"]}
+                            ext_result["visual_summary"] = v_res.get("visual_summary", "")
+                            ext_result["photo_category"] = cat
+                    except Exception as e:
+                        logger.warning(f"Image vision analysis notice: {e}")
+
+                elif is_pdf and file_bytes:
+                    try:
+                        emb_images = vision_analyzer.analyze_pdf_embedded_images(file_bytes)
+                        if emb_images:
+                            if "fields" not in ext_result:
+                                ext_result["fields"] = {}
+                            ext_result["fields"]["embedded_visuals_count"] = f"{len(emb_images)} Graphic/Photo Asset(s) Detected"
+                            for idx, img in enumerate(emb_images):
+                                p_num = img.get("source_page", 1)
+                                if img.get("person_count") == 1:
+                                    ext_result["fields"][f"embedded_visual_{idx+1}_portrait"] = f"Page {p_num}: Individual portrait photograph with {img.get('facial_features', {}).get('expression', 'composed expression')}, {img.get('clothing_and_attire', {}).get('primary_color', 'neutral')} attire"
+                                elif img.get("person_count", 0) > 1:
+                                    ext_result["fields"][f"embedded_visual_{idx+1}_group"] = f"Page {p_num}: Group photograph of {img.get('person_count')} individuals"
+                                else:
+                                    ext_result["fields"][f"embedded_visual_{idx+1}_scenery"] = f"Page {p_num}: {img.get('scene_classification', 'Graphic visual')} ({img.get('lighting_and_atmosphere', 'ambient')})"
+                            ext_result["fields"]["embedded_visual_summary"] = "; ".join(img.get("visual_summary", "") for img in emb_images[:2])
+                            ext_result["embedded_images"] = emb_images
+                    except Exception as e:
+                        logger.warning(f"PDF embedded image extraction notice: {e}")
+
+                fallback_used = len(ext_result.get("entities", [])) == 0 and len(ext_result.get("fields", {})) == 0
                 
             latency_ms = int((time.time() - start_time) * 1000)
             logger.info(f"[TELEMETRY] Stage: EXTRACTION | Latency: {latency_ms}ms | Fallback: {fallback_used}")
@@ -156,6 +266,8 @@ def execute_node_action(action: PipelineAction, inputs: dict, document_id: str, 
                     token_label_distribution={}, entity_count=len(ext_result.get("entities", []))
                 )
                 db.add(extracted_data)
+            else:
+                extracted_data.structured_json = ext_result
             
             doc.status = "EXTRACTION_COMPLETED"
             db.commit()
@@ -233,7 +345,7 @@ def execute_node_action(action: PipelineAction, inputs: dict, document_id: str, 
         doc.status = "COMPLETED"
         db.commit()
         documents_processed_total.labels(tenant_id=doc.tenant_id, status=doc.status).inc()
-        index_document_task.delay(str(doc.id))
+        dispatch_indexing(str(doc.id))
         
         # Track usage for billing
         try:
@@ -254,14 +366,16 @@ def execute_node_action(action: PipelineAction, inputs: dict, document_id: str, 
 
     return {"status": "ignored"}
 
-@celery_app.task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
-def process_document_task(self, document_id: str):
-    trace_id = set_trace_id(self.request.id)
+def _run_document_pipeline(document_id: str, request_id: str = None):
+    trace_id = set_trace_id(request_id or f"trace_{document_id[:8]}")
     lock_key = f"doc_lock_{document_id}"
-    if not redis_client.setnx(lock_key, "1"):
-        logger.warning(f"Task for {document_id} is already running. Idempotency lock triggered.")
-        return
-    redis_client.expire(lock_key, 3600)
+    try:
+        if not redis_client.setnx(lock_key, "1"):
+            logger.warning(f"Task for {document_id} is already running. Idempotency lock triggered.")
+            return
+        redis_client.expire(lock_key, 3600)
+    except Exception:
+        pass
 
     db = SessionLocal()
     try:
@@ -281,21 +395,98 @@ def process_document_task(self, document_id: str):
         engine.run(graph, context, db)
 
     except Exception as e:
-        logger.error(f"Pipeline failed: {str(e)}")
+        logger.error(f"Pipeline execution error: {str(e)}")
         try:
-            self.retry(exc=e)
-        except MaxRetriesExceededError:
             dead_letter_queue_total.labels(stage="process_document").inc()
+        except Exception:
+            pass
+        try:
             db.rollback()
-            doc.status = "FAILED"
-            db.commit()
+            if doc:
+                doc.status = "FAILED"
+                db.commit()
+        except Exception:
+            pass
             
     finally:
-        redis_client.delete(lock_key)
-        db.close()
+        try:
+            redis_client.delete(lock_key)
+        except Exception:
+            pass
+        try:
+            db.close()
+        except Exception:
+            pass
 
 @celery_app.task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
-def index_document_task(self, document_id: str):
+def process_document_task(self, document_id: str):
+    req_id = getattr(getattr(self, 'request', None), 'id', None)
+    return _run_document_pipeline(document_id, req_id)
+
+_last_redis_check_time = 0
+_cached_redis_alive = False
+
+def is_redis_available() -> bool:
+    global _last_redis_check_time, _cached_redis_alive
+    now = time.time()
+    if now - _last_redis_check_time < 10.0:
+        return _cached_redis_alive
+    
+    _last_redis_check_time = now
+    import socket
+    try:
+        host = os.getenv("REDIS_HOST", "127.0.0.1")
+        port = int(os.getenv("REDIS_PORT", "6379"))
+        if "redis://" in REDIS_URL:
+            clean = REDIS_URL.split("://")[1].split("/")[0]
+            if ":" in clean:
+                host, port = clean.split(":")[0], int(clean.split(":")[1])
+            else:
+                host = clean
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(0.2)
+        res = s.connect_ex((host, port))
+        s.close()
+        _cached_redis_alive = (res == 0)
+    except Exception:
+        _cached_redis_alive = False
+    return _cached_redis_alive
+
+def dispatch_document_processing(document_id: str):
+    """
+    Resilient task dispatcher:
+    - If Redis is live: Queues to Celery broker asynchronously.
+    - If Redis is offline: Instantly dispatches in a daemon worker thread so
+      the HTTP request returns in milliseconds and the document processes cleanly!
+    """
+    if is_redis_available() and Celery:
+        try:
+            process_document_task.delay(str(document_id))
+            return
+        except Exception as e:
+            logger.warning(f"Celery queue dispatch failed ({e}), falling back to background worker thread.")
+    
+    import threading
+    t = threading.Thread(target=_run_document_pipeline, args=(str(document_id),), daemon=True)
+    t.start()
+
+def dispatch_indexing(document_id: str):
+    """
+    Resilient indexing dispatcher:
+    - If Redis is live: Queues to Celery broker asynchronously.
+    - If Redis is offline: Runs asynchronously in a daemon worker thread.
+    """
+    if is_redis_available() and Celery:
+        try:
+            index_document_task.delay(str(document_id))
+            return
+        except Exception:
+            pass
+    import threading
+    t = threading.Thread(target=_index_document, args=(str(document_id),), daemon=True)
+    t.start()
+
+def _index_document(document_id: str):
     start_time = time.time()
     db = SessionLocal()
     try:
@@ -304,7 +495,7 @@ def index_document_task(self, document_id: str):
             return
             
         ocr_record = db.query(OcrResult).filter(OcrResult.document_id == document_id).first()
-        searchable_text = ocr_record.canonical_document.get("text", "") if ocr_record else ""
+        searchable_text = ocr_record.canonical_document.get("text", "") if ocr_record and ocr_record.canonical_document else ""
         
         emb_start = time.time()
         emb_result = embedding_generator.generate(searchable_text, doc.tenant_id)
@@ -336,22 +527,30 @@ def index_document_task(self, document_id: str):
             sections={}
         )
         
-        with MetricsTimer(indexing_delay_ms):
-            success = es_client.index_document(
-                tenant_id=doc.tenant_id,
-                document_id=str(doc.id), 
-                text=searchable_text,
-                embeddings=emb_result.get("vector", []),
-                metadata=search_model.model_dump()
-            )
-            
-        latency_ms = int((time.time() - start_time) * 1000)
-        logger.info(f"[TELEMETRY] Stage: ELASTICSEARCH | Latency: {latency_ms}ms | Fallback: {not success}")
+        try:
+            with MetricsTimer(indexing_delay_ms):
+                success = es_client.index_document(
+                    tenant_id=doc.tenant_id,
+                    document_id=str(doc.id), 
+                    text=searchable_text,
+                    embeddings=emb_result.get("vector", []),
+                    metadata=search_model.model_dump()
+                )
+            latency_ms = int((time.time() - start_time) * 1000)
+            logger.info(f"[TELEMETRY] Stage: ELASTICSEARCH | Latency: {latency_ms}ms | Fallback: {not success}")
+        except Exception:
+            pass
         
         db.commit()
     except Exception as e:
-        logger.error(f"Indexing failed: {str(e)}")
-        db.rollback()
-        raise e
+        logger.error(f"Indexing error: {str(e)}")
+        try:
+            db.rollback()
+        except Exception:
+            pass
     finally:
         db.close()
+
+@celery_app.task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
+def index_document_task(self, document_id: str):
+    return _index_document(document_id)

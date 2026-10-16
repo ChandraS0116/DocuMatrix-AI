@@ -99,22 +99,22 @@ export default function PerformanceBenchmarksView() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', flex: 1, minHeight: '300px' }}>
         <div className="glass-panel" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Activity size={16} color="var(--accent-purple)" /> Processing Throughput
+            <Activity size={16} color="var(--accent-blue)" /> Processing Throughput
           </h3>
           <div style={{ flex: 1 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={data} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorTp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent-purple)" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="var(--accent-purple)" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="var(--accent-blue)" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="var(--accent-blue)" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                 <XAxis dataKey="time" hide />
                 <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} axisLine={false} domain={[0, 'dataMax + 100']} />
                 <RechartsTooltip contentStyle={{background: 'var(--bg-deep)', border: 'none'}} />
-                <Area type="monotone" dataKey="throughput" stroke="var(--accent-purple)" fillOpacity={1} fill="url(#colorTp)" isAnimationActive={false} />
+                <Area type="monotone" dataKey="throughput" stroke="var(--accent-blue)" fillOpacity={1} fill="url(#colorTp)" isAnimationActive={false} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

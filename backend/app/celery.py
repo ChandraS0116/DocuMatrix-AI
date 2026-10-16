@@ -1,14 +1,22 @@
+import os
+
 try:
     from celery import Celery
 except ImportError:
     Celery = None
 
+REDIS_URL = os.getenv("REDIS_URL") or os.getenv("CELERY_BROKER_URL") or "redis://localhost:6379/0"
+REDIS_BACKEND = os.getenv("CELERY_RESULT_BACKEND") or (REDIS_URL.rstrip("/0") + "/1")
+
 if Celery:
     celery = Celery(
         "doc_pipeline",
-        broker="redis://redis:6379/0",
-        backend="redis://redis:6379/1"
+        broker=REDIS_URL,
+        backend=REDIS_BACKEND
     )
+    celery.conf.broker_connection_retry_on_startup = False
+    celery.conf.broker_connection_max_retries = 2
+    celery.conf.broker_connection_timeout = 2.0
 else:
     class MockCelery:
         class conf:

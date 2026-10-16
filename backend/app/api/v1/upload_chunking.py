@@ -5,17 +5,18 @@ import time
 import hashlib
 import shutil
 import asyncio
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.database import Document, AuditLog
 from app.services.security.auth import get_current_user, User
 from app.services.storage.minio import minio_service
-from app.services.processing.tasks import process_document_task
+import tempfile
+from app.services.processing.tasks import process_document_task, dispatch_document_processing
 
 upload_router = APIRouter()
 
-UPLOAD_DIR = "/tmp/algoleap_uploads"
+UPLOAD_DIR = os.getenv("UPLOAD_DIR") or os.path.join(tempfile.gettempdir(), "documatrix_uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 def get_session_dir(session_id: str):
@@ -140,6 +141,7 @@ async def get_upload_status(
 
 @upload_router.post("/complete")
 async def complete_upload(
+    background_tasks: BackgroundTasks,
     upload_session_id: str = Form(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -204,8 +206,11 @@ async def complete_upload(
     # Cleanup session
     shutil.rmtree(session_dir, ignore_errors=True)
     
-    # Trigger processing
-    process_document_task.delay(str(doc_id))
+    # Trigger processing non-blocking
+    if background_tasks:
+        background_tasks.add_task(dispatch_document_processing, str(doc_id))
+    else:
+        dispatch_document_processing(str(doc_id))
     
     return {"document_id": str(doc_id), "status": "UPLOADED", "hash": final_hash}
 

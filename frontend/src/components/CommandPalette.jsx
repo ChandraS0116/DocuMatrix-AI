@@ -93,7 +93,10 @@ export default function CommandPalette() {
           style={{ 
             width: '100%', maxWidth: '600px', 
             display: 'flex', flexDirection: 'column', 
-            overflow: 'hidden', backgroundColor: 'var(--bg-deep)'
+            overflow: 'hidden', backgroundColor: 'var(--bg-panel)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-glass)',
+            border: '1px solid var(--border-light)'
           }}
         >
           {/* Search Input */}
@@ -110,7 +113,7 @@ export default function CommandPalette() {
                 fontSize: '1.1rem', outline: 'none'
               }}
             />
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--bg-panel)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>ESC</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--bg-deep)', border: '1px solid var(--border-light)', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)' }}>ESC</div>
           </div>
 
           {/* Results */}
