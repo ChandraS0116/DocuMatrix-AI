@@ -7,7 +7,7 @@
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16.0-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Compliance](https://img.shields.io/badge/Compliance-SOC2_Type_II-0F9D58?style=for-the-badge&logo=shield&logoColor=white)
-![License](https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
 
 **Autonomous Enterprise Document Intelligence and Multimodal Decision Platform**
 
@@ -188,6 +188,10 @@ DocuMatrix AI classifies documents and operational actions through a determinist
 
 ---
 
-## 📄 License & Attribution
+## 📄 License & Author
 
-This project is licensed under the Apache License 2.0. Built for enterprise document automation, intelligence verification, and governance.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+**Sri Chandra Pappu**  
+*Creator & Lead Developer — A11yLens*  
+[LinkedIn Profile](https://www.linkedin.com/in/chandrapappu1609)
